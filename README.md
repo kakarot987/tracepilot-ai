@@ -30,6 +30,7 @@ See [Tech Stack](docs/TECH_STACK.md) and [Architecture](docs/ARCHITECTURE.md).
 | [TODO.md](TODO.md) | Canonical tasks, milestones, and progress |
 | [MVP Scope](docs/MVP_SCOPE.md) | Features, exclusions, acceptance criteria |
 | [Architecture](docs/ARCHITECTURE.md) | Components, data flows, agent lifecycle |
+| [Project Structure](docs/PROJECT_STRUCTURE.md) | Proposed repository tree and package ownership |
 | [Tech Stack](docs/TECH_STACK.md) | Technology choices and hardware constraints |
 | [Design Decisions](docs/DECISIONS.md) | Architectural reasoning and deferred choices |
 | [Evaluation](docs/EVALUATION.md) | Quality metrics and test plan |
