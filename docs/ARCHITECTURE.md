@@ -41,7 +41,7 @@ flowchart TD
 | `evaluations/` | Ground-truth cases and metrics |
 | `docs/` | Design and runbook documentation |
 
-These are **target directories**; do not confuse this list with existing files.
+These are **target directories**; do not confuse this list with existing files. For a more detailed proposed tree and Java package responsibilities see [Project Structure](PROJECT_STRUCTURE.md).
 
 ## Investigation lifecycle
 
