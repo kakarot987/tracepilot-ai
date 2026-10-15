@@ -20,15 +20,25 @@
 
 ## Milestone 0 — Create the project (Day 1)
 
-- [ ] Create a **new** GitHub repository named `tracepilot-ai` (public when ready).
+- [x] Create a **new** GitHub repository named `tracepilot-ai` (public when ready).
 - [ ] Add a `.gitignore`, an open-source license of choice, and an initial project README.
 - [ ] Choose Maven or Gradle and lock down Java 21 and a compatible Spring Boot / Spring AI combination.
 - [ ] Decide the initial module boundaries: `backend/`, `frontend/`, `simulator/`, `infrastructure/`, `docs/`, `evaluations/`.
 - [ ] Define the MVP scope and write down **out-of-scope** items (no autonomous production changes, no real credentials, no expensive infrastructure).
 - [ ] Create GitHub Issues for the milestones below; label them `mvp`, `enhancement`, `docs`, and `testing` as appropriate.
-- [ ] Commit this checklist as `TODO.md` and use it as the source of truth.
+- [x] Commit this checklist as `TODO.md` and use it as the source of truth.
 
 **Exit criteria:** Empty but organized standalone repository, documented MVP scope, and working local prerequisites.
+
+## GitHub + ChatGPT collaboration
+
+- [x] Connect GitHub to ChatGPT and verify `kakarot987/tracepilot-ai` is readable.
+- [x] Document working agreements in [`docs/CHATGPT_COLLABORATION.md`](docs/CHATGPT_COLLABORATION.md).
+- [ ] Add `README.md` with the one-paragraph MVP problem statement and repository overview.
+- [ ] After each meaningful implementation milestone, ask ChatGPT to review the relevant GitHub files or pull request.
+- [ ] Update `TODO.md` and the progress log when a milestone is completed (only after verifying changes in GitHub).
+
+**Boundary:** ChatGPT may create or edit Markdown documentation on request; application code, infrastructure, commits of non-Markdown files, and implementation remain the developer's responsibility.
 
 ## Milestone 1 — Model setup and first REST API (Week 1)
 
@@ -129,7 +139,7 @@
 
 ## Suggested task order for the very first session
 
-1. [ ] Create the repository and commit `TODO.md`.
+1. [x] Create the repository and commit `TODO.md`.
 2. [ ] Write a one-paragraph MVP problem statement in `README.md`.
 3. [ ] Verify Ollama GPU inference with one small model.
 4. [ ] Scaffold the Spring Boot backend.
@@ -148,8 +158,9 @@
 
 | Date | Milestone | What changed | Next blocker |
 |---|---|---|---|
-| YYYY-MM-DD | 0 | Initial project checklist created | Repository not yet created |
+| 2026-10-15 | 0 | Repository `kakarot987/tracepilot-ai` and `TODO.md` confirmed on `main` | README, project setup and local prerequisites remain |
+| 2026-10-15 | 0 | Added GitHub–ChatGPT Markdown collaboration workflow | Follow the review and documentation process |
 
 ---
 
-**Current next action:** Create `tracepilot-ai` on GitHub, add this `TODO.md`, and begin Milestone 0. Keep the scope focused on an evidence-backed incident investigator, not an unrestricted autonomous production agent.
+**Current next action:** Write the MVP problem statement in `README.md`, then verify Ollama and scaffold Spring Boot. See [ChatGPT collaboration workflow](docs/CHATGPT_COLLABORATION.md). Keep the scope focused on an evidence-backed incident investigator, not an unrestricted autonomous production agent.
