@@ -23,7 +23,7 @@
 - [x] Create a **new** GitHub repository named `tracepilot-ai` (public when ready).
 - [ ] Add a `.gitignore`, an open-source license of choice, and an initial project README.
 - [ ] Choose Maven or Gradle and lock down Java 21 and a compatible Spring Boot / Spring AI combination.
-- [ ] Decide the initial module boundaries: `backend/`, `frontend/`, `simulator/`, `infrastructure/`, `docs/`, `evaluations/`.
+- [x] Document proposed module boundaries: `backend/`, `frontend/`, `simulator/`, `infrastructure/`, `docs/`, `evaluations/` (see [Project Structure](docs/PROJECT_STRUCTURE.md); implementation pending).
 - [x] Define the MVP scope and write down **out-of-scope** items (no autonomous production changes, no real credentials, no expensive infrastructure).
 - [ ] Create GitHub Issues for the milestones below; label them `mvp`, `enhancement`, `docs`, and `testing` as appropriate.
 - [x] Commit this checklist as `TODO.md` and use it as the source of truth.
@@ -161,6 +161,7 @@
 | 2026-10-15 | 0 | Repository `kakarot987/tracepilot-ai` and `TODO.md` confirmed on `main` | README, project setup and local prerequisites remain |
 | 2026-10-15 | 0 | Added GitHub–ChatGPT Markdown collaboration workflow | Follow the review and documentation process |
 | 2026-10-15 | 0 | Added README and planning docs for stack, architecture, MVP, design decisions, and evaluation | Choose build tool, verify local model and begin implementation |
+| 2026-10-15 | 0 | Documented proposed repository tree and package responsibilities | Developer to scaffold modules incrementally |
 
 ---
 
