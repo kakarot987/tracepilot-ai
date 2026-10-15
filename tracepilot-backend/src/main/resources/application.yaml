@@ -1,0 +1,32 @@
+
+spring:
+  application:
+    name: tracepilot-backend
+
+  ai:
+    model:
+      chat: ollama
+    ollama:
+      base-url: ${OLLAMA_BASE_URL:http://localhost:11434}
+      chat:
+        options:
+          model: qwen3:4b
+          temperature: 0.2
+          num-ctx: 4096
+          num-predict: 512
+      init:
+        pull-model-strategy: never
+
+  http:
+    clients:
+      connect-timeout: 5s
+      read-timeout: 90s
+
+server:
+  port: 8080
+
+management:
+  endpoints:
+    web:
+      exposure:
+        include: health,info
