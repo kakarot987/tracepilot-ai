@@ -8,6 +8,9 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.context.SpringBootTest;
 import org.springframework.ai.chat.client.ChatClient;
 import org.springframework.ai.ollama.api.OllamaChatOptions;
+import tools.jackson.databind.ObjectMapper;
+
+import java.util.Set;
 
 import static org.junit.jupiter.api.Assertions.*;
 
@@ -24,27 +27,46 @@ class OllamaLiveIntegrationTest {
     @Autowired
     private ChatClient.Builder chatClientBuilder;
 
+    @Autowired
+    private ObjectMapper objectMapper;
+
+
     @Test
-    void qwen3ProducesNonEmptyJsonContent() {
+    void qwen3ProducesValidJsonContent() throws Exception {
+
         String content = chatClientBuilder.build()
                 .prompt()
                 .system("""
             You are a software incident triage assistant.
-            Return only a JSON object.
-            Do not include markdown.
+            Return a JSON object containing:
+            severity and category.
+            Do not include explanations.
             """)
                 .user("""
             Analyze a payment service HTTP 504 timeout.
-            Return fields severity and category.
-            """).options(OllamaChatOptions.builder()
-                        .disableThinking())
+            Return severity HIGH and category DATABASE.
+            """)
+                .options(OllamaChatOptions.builder()
+                        .format("json")
+                        .disableThinking()
+                     )
                 .call()
                 .content();
 
         assertNotNull(content);
         assertFalse(content.isBlank(),
-                "Ollama returned empty answer content");
+                "Ollama returned empty content");
+
+        var json = objectMapper.readTree(content);
+
+        assertTrue(json.isObject(), "Expected JSON object");
+        assertTrue(json.has("severity"));
+        assertTrue(json.has("category"));
+
+        assertTrue(json.get("severity").isString());
+        assertTrue(json.get("category").isString());
     }
+
 
     @Test
     void analyzesRealSyntheticIncident() {
@@ -57,12 +79,32 @@ class OllamaLiveIntegrationTest {
                         "payment-service"
                 ));
 
+
         assertNotNull(response);
-        assertNotNull(response.severity());
-        assertNotNull(response.category());
+        assertTrue(Set.of(
+                "LOW", "MEDIUM", "HIGH", "CRITICAL"
+        ).contains(response.severity()));
+
+        assertTrue(Set.of(
+                "DATABASE",
+                "NETWORK",
+                "APPLICATION",
+                "INFRASTRUCTURE",
+                "EXTERNAL_DEPENDENCY",
+                "UNKNOWN"
+        ).contains(response.category()));
+
         assertFalse(response.hypotheses().isEmpty());
+        assertTrue(response.hypotheses().size() <= 3);
         assertTrue(response.requiresInvestigation());
 
-        assertTrue(response.hypotheses().size() <= 3);
+        response.hypotheses().forEach(h -> {
+            assertNotNull(h);
+            assertNotNull(h.cause());
+            assertFalse(h.cause().isBlank());
+            assertNotNull(h.reasoning());
+            assertFalse(h.reasoning().isBlank());
+        });
+
     }
 }

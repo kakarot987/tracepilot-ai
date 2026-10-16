@@ -3,8 +3,17 @@ package com.tracepilot.llm;
 
 import com.tracepilot.incident.dto.IncidentAnalysisRequest;
 import com.tracepilot.incident.dto.IncidentAnalysisResponse;
+import com.tracepilot.llm.exception.ModelOutputException;
+import com.tracepilot.llm.exception.ModelTimeoutException;
+import com.tracepilot.llm.exception.ModelUnavailableException;
 import org.springframework.ai.chat.client.ChatClient;
 import org.springframework.stereotype.Component;
+import org.springframework.web.client.ResourceAccessException;
+import org.springframework.web.client.RestClientException;
+import org.springframework.web.client.RestClientResponseException;
+
+import java.net.SocketTimeoutException;
+import java.net.http.HttpTimeoutException;
 
 @Component
 public class OllamaIncidentModelGateway
@@ -44,16 +53,90 @@ public class OllamaIncidentModelGateway
                         Return 1 to 3 plausible hypotheses.
                         Always set requiresInvestigation to true.
                         """;
-        return chatClient.prompt()
-                .system(systemPrompt)
-                .user(incident)
-                .call()
-                .entity(
-                        IncidentAnalysisResponse.class,
-                        spec -> spec
-                                .useProviderStructuredOutput()
-                                .validateSchema()
+
+        try {
+            IncidentAnalysisResponse response = chatClient.prompt()
+                    .system(systemPrompt)
+                    .user(incident)
+                    .call()
+                    .entity(
+                            IncidentAnalysisResponse.class,
+                            spec -> spec
+                                    .useProviderStructuredOutput()
+                                    .validateSchema()
+                    );
+
+            if (response == null) {
+                throw new ModelOutputException(
+                        "Ollama returned an empty analysis"
                 );
+            }
+
+            return response;
+
+        } catch (ModelOutputException ex) {
+            throw ex;
+
+        } catch (ResourceAccessException ex) {
+            if (isTimeout(ex)) {
+                throw new ModelTimeoutException(
+                        "Ollama request timed out", ex
+                );
+            }
+
+            throw new ModelUnavailableException(
+                    "Unable to communicate with Ollama", ex
+            );
+
+        } catch (RestClientResponseException ex) {
+            int status = ex.getStatusCode().value();
+
+            if (status == 408 || status == 504) {
+                throw new ModelTimeoutException(
+                        "Ollama returned a timeout response", ex
+                );
+            }
+
+            if (status == 429 || status >= 500) {
+                throw new ModelUnavailableException(
+                        "Ollama returned a temporary error", ex
+                );
+            }
+
+            // Unexpected client responses are not transient.
+            throw new ModelOutputException(
+                    "Ollama rejected the model request", ex
+            );
+
+        } catch (RestClientException ex) {
+            throw new ModelUnavailableException(
+                    "Ollama communication failed", ex
+            );
+
+        } catch (RuntimeException ex) {
+            if (isTimeout(ex)) {
+                throw new ModelTimeoutException(
+                        "Ollama request timed out", ex
+                );
+            }
+
+            if (hasCause(ex, java.net.ConnectException.class)
+                    || hasCause(ex, java.net.UnknownHostException.class)) {
+                throw new ModelUnavailableException(
+                        "Unable to contact Ollama", ex
+                );
+            }
+
+            if (isJsonParsingFailure(ex)
+                    || isStructuredOutputFailure(ex)) {
+                throw new ModelOutputException(
+                        "Ollama returned invalid structured output", ex
+                );
+            }
+
+            throw ex;
+        }
+
 
     }
 
@@ -70,6 +153,15 @@ public class OllamaIncidentModelGateway
             }
         }
         return false;
+    }
+
+    private boolean isTimeout(Throwable error) {
+        return hasCause(error, SocketTimeoutException.class)
+                || hasCause(error, HttpTimeoutException.class)
+                || hasCause(
+                error,
+                java.net.http.HttpConnectTimeoutException.class
+        );
     }
 
     private boolean isJsonParsingFailure(Throwable error) {
