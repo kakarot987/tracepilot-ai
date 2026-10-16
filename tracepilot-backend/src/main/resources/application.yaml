@@ -4,23 +4,29 @@ spring:
     name: tracepilot-backend
 
   ai:
-    model:
-      chat: ollama
     ollama:
       base-url: ${OLLAMA_BASE_URL:http://localhost:11434}
       chat:
+        model: qwen3:4b
+        think: false
         options:
-          model: qwen3:4b
           temperature: 0.2
           num-ctx: 4096
-          num-predict: 512
+          num-predict: 1024
       init:
         pull-model-strategy: never
 
   http:
     clients:
       connect-timeout: 5s
-      read-timeout: 90s
+      read-timeout: 45s
+
+tracepilot:
+  llm:
+    max-transient-retries: 1
+    retry-backoff: 500ms
+    # Configuration limit, enforced by an outer request deadline
+    request-deadline: 100s
 
 server:
   port: 8080

@@ -3,22 +3,12 @@ package com.tracepilot.llm;
 
 import com.tracepilot.incident.dto.IncidentAnalysisRequest;
 import com.tracepilot.incident.dto.IncidentAnalysisResponse;
-import com.tracepilot.llm.exception.ModelOutputException;
-import com.tracepilot.llm.exception.ModelTimeoutException;
-import com.tracepilot.llm.exception.ModelUnavailableException;
 import org.springframework.ai.chat.client.ChatClient;
-import org.springframework.ai.ollama.api.OllamaChatOptions;
 import org.springframework.stereotype.Component;
-import org.springframework.web.client.ResourceAccessException;
-import org.springframework.web.client.RestClientException;
-import org.springframework.web.client.RestClientResponseException;
-
-import java.net.SocketTimeoutException;
-import java.net.http.HttpTimeoutException;
 
 @Component
 public class OllamaIncidentModelGateway
-        implements IncidentModelGateway {
+        implements IncidentModelInvocation  {
 
     private final ChatClient chatClient;
 
@@ -27,7 +17,7 @@ public class OllamaIncidentModelGateway
     }
 
     @Override
-    public IncidentAnalysisResponse analyze(
+    public IncidentAnalysisResponse invoke(
             IncidentAnalysisRequest request) {
 
         String incident = """
@@ -54,92 +44,16 @@ public class OllamaIncidentModelGateway
                         Return 1 to 3 plausible hypotheses.
                         Always set requiresInvestigation to true.
                         """;
-        try {
-            IncidentAnalysisResponse response = chatClient.prompt()
-                    .system(systemPrompt)
-                    .user(incident)
-                    .options(OllamaChatOptions.builder()
-                            .model("qwen3:4b")
-                            .temperature(0.2)
-                            .numCtx(4096)
-                            .numPredict(2048)
-                            .disableThinking())
-                    .call()
-                    .entity(
-                            IncidentAnalysisResponse.class,
-                            spec -> spec
-                                    .useProviderStructuredOutput()
-                                    .validateSchema()
-                    );
-
-            if (response == null) {
-                throw new ModelOutputException(
-                        "Model returned no structured analysis"
+        return chatClient.prompt()
+                .system(systemPrompt)
+                .user(incident)
+                .call()
+                .entity(
+                        IncidentAnalysisResponse.class,
+                        spec -> spec
+                                .useProviderStructuredOutput()
+                                .validateSchema()
                 );
-            }
-
-            return response;
-
-        } catch (ModelOutputException ex) {
-            throw ex;
-
-        } catch (ResourceAccessException ex) {
-            if (hasCause(ex, SocketTimeoutException.class)
-                    || hasCause(ex, HttpTimeoutException.class)) {
-                throw new ModelTimeoutException(
-                        "Ollama request timed out", ex
-                );
-            }
-
-            throw new ModelUnavailableException(
-                    "Unable to contact Ollama", ex
-            );
-
-        } catch (RestClientResponseException ex) {
-            if (ex.getStatusCode().is5xxServerError()) {
-                throw new ModelUnavailableException(
-                        "Ollama returned a server error", ex
-                );
-            }
-            throw ex;
-
-        } catch (RestClientException ex) {
-            throw new ModelUnavailableException(
-                    "Ollama communication failed", ex
-            );
-
-        } catch (RuntimeException ex) {
-
-            if (hasCause(ex, SocketTimeoutException.class)
-                    || hasCause(ex, HttpTimeoutException.class)
-                    || hasCause(
-                    ex,
-                    java.net.http.HttpConnectTimeoutException.class
-            )) {
-
-                throw new ModelTimeoutException(
-                        "Ollama request timed out", ex
-                );
-            }
-
-            if (hasCause(ex, java.net.ConnectException.class)
-                    || hasCause(ex, java.net.UnknownHostException.class)) {
-
-                throw new ModelUnavailableException(
-                        "Unable to contact Ollama", ex
-                );
-            }
-
-            if (isJsonParsingFailure(ex)
-                    || isStructuredOutputFailure(ex)) {
-
-                throw new ModelOutputException(
-                        "Model returned invalid structured output", ex
-                );
-            }
-
-            throw ex;
-        }
 
     }
 
