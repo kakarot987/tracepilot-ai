@@ -109,18 +109,39 @@ public class OllamaIncidentModelGateway
             );
 
         } catch (RuntimeException ex) {
-            // Spring AI structured-output parsing can throw
-            // Jackson exceptions after validation retries.
-            if (isJsonParsingFailure(ex)) {
-                throw new ModelOutputException(
-                        "Invalid JSON returned by model", ex
+
+            if (hasCause(ex, SocketTimeoutException.class)
+                    || hasCause(ex, HttpTimeoutException.class)
+                    || hasCause(
+                    ex,
+                    java.net.http.HttpConnectTimeoutException.class
+            )) {
+
+                throw new ModelTimeoutException(
+                        "Ollama request timed out", ex
                 );
             }
+
+            if (hasCause(ex, java.net.ConnectException.class)
+                    || hasCause(ex, java.net.UnknownHostException.class)) {
+
+                throw new ModelUnavailableException(
+                        "Unable to contact Ollama", ex
+                );
+            }
+
+            if (isJsonParsingFailure(ex)
+                    || isStructuredOutputFailure(ex)) {
+
+                throw new ModelOutputException(
+                        "Model returned invalid structured output", ex
+                );
+            }
+
             throw ex;
         }
 
     }
-
 
     private boolean hasCause(
             Throwable error,
@@ -151,6 +172,26 @@ public class OllamaIncidentModelGateway
                 return true;
             }
         }
+        return false;
+    }
+
+    private boolean isStructuredOutputFailure(Throwable error) {
+        for (Throwable current = error;
+             current != null;
+             current = current.getCause()) {
+
+            String className = current.getClass().getName();
+
+            if (className.startsWith("org.springframework.ai.")
+                    && (
+                    className.contains("StructuredOutput")
+                            || className.contains("OutputParsing")
+                            || className.contains("SchemaValidation")
+            )) {
+                return true;
+            }
+        }
+
         return false;
     }
 

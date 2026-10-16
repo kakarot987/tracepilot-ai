@@ -103,4 +103,25 @@ class IncidentAnalysisServiceTest {
         );
     }
 
+    @Test
+    void rejectsAnalysisThatDoesNotRequireInvestigation() {
+        var response = new IncidentAnalysisResponse(
+                "HIGH",
+                "DATABASE",
+                List.of(new IncidentHypothesis(
+                        "Connection pool exhaustion",
+                        "Connections may be saturated"
+                )),
+                false
+        );
+
+        when(gateway.analyze(request)).thenReturn(response);
+
+        assertThrows(
+                ModelOutputException.class,
+                () -> service.analyze(request)
+        );
+    }
+
+
 }

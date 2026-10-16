@@ -41,7 +41,8 @@ public class IncidentAnalysisService {
                 || result.hypotheses() == null
                 || result.hypotheses().isEmpty()
                 || result.hypotheses().size() > 3
-                || !validHypotheses(result.hypotheses())) {
+                || !validHypotheses(result.hypotheses())
+                || !result.requiresInvestigation()) {
 
             throw new ModelOutputException(
                     "The model returned an invalid analysis"
