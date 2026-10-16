@@ -21,6 +21,8 @@ spring:
       connect-timeout: 5s
       read-timeout: 45s
 
+  profiles:
+    default: simulator
 tracepilot:
   llm:
     max-transient-retries: 1
@@ -36,3 +38,5 @@ management:
     web:
       exposure:
         include: health,info
+
+
