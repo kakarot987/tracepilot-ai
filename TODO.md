@@ -42,18 +42,20 @@
 
 ## Milestone 1 — Model setup and first REST API (Week 1)
 
-- [ ] Install Ollama and verify GPU use with `nvidia-smi` and `ollama ps`.
-- [ ] Try a compact quantized model such as `qwen3:4b`; verify performance on the laptop before committing to it.
-- [ ] Keep initial context size modest (around 4K tokens) and inference concurrency at one; tune after measuring.
-- [ ] Bootstrap Spring Boot with Spring AI, validation, actuator, and test dependencies.
-- [ ] Define a provider-independent model abstraction so local Ollama can be swapped later.
-- [ ] Implement `POST /api/v1/incidents/analyze` with a typed request and response.
-- [ ] Include `severity`, `category`, `hypotheses`, and `requiresInvestigation` in the response contract.
-- [ ] Add request validation, structured-output parsing, bounded retries, and meaningful error responses.
-- [ ] Write unit and integration tests for valid input, invalid input, model failure, and malformed output.
-- [ ] Record local latency and approximate RAM/VRAM use for one representative request.
+- [x] Install Ollama and verify GPU use with `nvidia-smi` and `ollama ps`.
+- [x] Try a compact quantized model such as `qwen3:4b`; verify performance on the laptop before committing to it.
+- [x] Keep initial context size modest (around 4K tokens) and inference concurrency at one; tune after measuring.
+- [x] Bootstrap Spring Boot with Spring AI, validation, actuator, and test dependencies.
+- [x] Define a provider-independent model abstraction so local Ollama can be swapped later.
+- [x] Implement `POST /api/v1/incidents/analyze` with a typed request and response.
+- [x] Include `severity`, `category`, `hypotheses`, and `requiresInvestigation` in the response contract.
+- [x] Add request validation, structured-output parsing, bounded retries, and meaningful error responses.
+- [x] Write unit and integration tests for valid input, invalid input, model failure, and malformed output.
+- [ ] Record approximate RAM/VRAM use for one representative request (latency benchmark already committed; hardware metrics not yet documented).
 
-**Exit criteria:** A tested Java endpoint returns structured initial incident hypotheses using a free local model.
+**Status (2026-10-16):** Core Milestone 1 implementation complete. Developer reports clean Maven tests, opt-in live Ollama tests, Docker endpoint verification, and failure-response checks passed. Previous exception-classification regression corrected in source review. Hardware RAM/VRAM measurement remains a documentation follow-up, not evidence of a failed test.
+
+**Exit criteria:** Met per developer verification: a tested Java endpoint returns structured initial incident hypotheses using a free local model.
 
 ## Milestone 2 — Synthetic incident data and tools (Week 2)
 
@@ -141,10 +143,10 @@
 
 1. [x] Create the repository and commit `TODO.md`.
 2. [x] Write a one-paragraph MVP problem statement in `README.md`.
-3. [ ] Verify Ollama GPU inference with one small model.
-4. [ ] Scaffold the Spring Boot backend.
-5. [ ] Implement the first typed `/api/v1/incidents/analyze` contract.
-6. [ ] Commit the first working test and example request/response.
+3. [x] Verify Ollama GPU inference with one small model (developer confirmed).
+4. [x] Scaffold the Spring Boot backend.
+5. [x] Implement the first typed `/api/v1/incidents/analyze` contract.
+6. [x] Commit the first working test and example request/response.
 
 ## Guardrails for this laptop and free budget
 
@@ -162,7 +164,8 @@
 | 2026-10-15 | 0 | Added GitHub–ChatGPT Markdown collaboration workflow | Follow the review and documentation process |
 | 2026-10-15 | 0 | Added README and planning docs for stack, architecture, MVP, design decisions, and evaluation | Choose build tool, verify local model and begin implementation |
 | 2026-10-15 | 0 | Documented proposed repository tree and package responsibilities | Developer to scaffold modules incrementally |
+| 2026-10-16 | 1 | Reviewed `feature/milestone-1`; exception classification, retries, typed API, tests and Docker integration present; developer confirmed verification checks passed | Record RAM/VRAM metrics when available; proceed to Milestone 2 after merge |
 
 ---
 
-**Current next action:** Verify Ollama locally, choose Maven or Gradle, and scaffold Spring Boot. See [ChatGPT collaboration workflow](docs/CHATGPT_COLLABORATION.md). Keep the scope focused on an evidence-backed incident investigator, not an unrestricted autonomous production agent.
+**Current next action:** Review and merge `feature/milestone-1` into `main`, then begin Milestone 2 synthetic incidents and read-only tools. Capture RAM/VRAM metrics as a documentation follow-up. See [ChatGPT collaboration workflow](docs/CHATGPT_COLLABORATION.md). Keep the scope focused on an evidence-backed incident investigator, not an unrestricted autonomous production agent.
