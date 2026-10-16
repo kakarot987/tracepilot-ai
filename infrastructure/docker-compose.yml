@@ -69,6 +69,7 @@ services:
       DB_URL: jdbc:postgresql://postgres:5432/tracepilot
       DB_USERNAME: tracepilot
       DB_PASSWORD: ${POSTGRES_PASSWORD:?Set POSTGRES_PASSWORD}
+      JAVA_TOOL_OPTIONS: "-Duser.timezone=UTC"
 
     depends_on:
       postgres:
