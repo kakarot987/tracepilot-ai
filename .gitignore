@@ -1,0 +1,28 @@
+
+# IntelliJ / IDE
+.idea/
+*.iml
+.vscode/
+
+# Java and Maven
+**/target/
+*.class
+
+# Runtime and secrets
+.env
+.env.*
+!.env.example
+*.log
+
+# Local data
+pgdata/
+*.db
+*.sqlite
+
+# OS
+.DS_Store
+Thumbs.db
+
+# Benchmark output
+gpu-benchmark.csv
+milestone-1-benchmark.csv
