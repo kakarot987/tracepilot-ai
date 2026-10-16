@@ -21,14 +21,17 @@
 ## Milestone 0 — Create the project (Day 1)
 
 - [x] Create a **new** GitHub repository named `tracepilot-ai` (public when ready).
-- [ ] Add a `.gitignore`, an open-source license of choice, and an initial project README.
-- [ ] Choose Maven or Gradle and lock down Java 21 and a compatible Spring Boot / Spring AI combination.
+- [x] Add root `.gitignore` and an initial project `README.md` (verified on feature branch).
+- [ ] Choose and add an open-source `LICENSE` file (not found on feature branch).
+- [x] Choose Maven with Java 21, Spring Boot 4.1.1 and Spring AI 2.0.1 (configured in `tracepilot-backend/pom.xml`; developer reports successful tests).
 - [x] Document proposed module boundaries: `backend/`, `frontend/`, `simulator/`, `infrastructure/`, `docs/`, `evaluations/` (see [Project Structure](docs/PROJECT_STRUCTURE.md); implementation pending).
 - [x] Define the MVP scope and write down **out-of-scope** items (no autonomous production changes, no real credentials, no expensive infrastructure).
 - [ ] Create GitHub Issues for the milestones below; label them `mvp`, `enhancement`, `docs`, and `testing` as appropriate.
 - [x] Commit this checklist as `TODO.md` and use it as the source of truth.
 
-**Exit criteria:** Empty but organized standalone repository, documented MVP scope, and working local prerequisites.
+**Status (2026-10-16):** Repository, initial README, `.gitignore`, Maven/Java/Spring configuration, structure plan, and scope are verified. Open-source license and milestone GitHub Issues remain outstanding (none found in GitHub issue search).
+
+**Exit criteria:** Organized standalone repository, documented MVP scope, and working local prerequisites; GitHub project-management hygiene remains to be completed.
 
 ## GitHub + ChatGPT collaboration
 
@@ -51,9 +54,10 @@
 - [x] Include `severity`, `category`, `hypotheses`, and `requiresInvestigation` in the response contract.
 - [x] Add request validation, structured-output parsing, bounded retries, and meaningful error responses.
 - [x] Write unit and integration tests for valid input, invalid input, model failure, and malformed output.
-- [ ] Record approximate RAM/VRAM use for one representative request (latency benchmark already committed; hardware metrics not yet documented).
+- [x] Verify RAM/VRAM usage for a representative local inference request (developer confirms checked on laptop; exact measurements not recorded in repository).
+- [ ] Optional documentation follow-up: add approximate RAM/VRAM numbers and measurement method to a Markdown benchmark note for reproducibility (not a Milestone 1 blocker).
 
-**Status (2026-10-16):** Core Milestone 1 implementation complete. Developer reports clean Maven tests, opt-in live Ollama tests, Docker endpoint verification, and failure-response checks passed. Previous exception-classification regression corrected in source review. Hardware RAM/VRAM measurement remains a documentation follow-up, not evidence of a failed test.
+**Status (2026-10-16):** Core Milestone 1 implementation complete. Developer reports clean Maven tests, opt-in live Ollama tests, Docker endpoint verification, and failure-response checks passed. Previous exception-classification regression corrected in source review. RAM/VRAM use was checked by the developer; recording the actual values in the repository remains an optional documentation follow-up.
 
 **Exit criteria:** Met per developer verification: a tested Java endpoint returns structured initial incident hypotheses using a free local model.
 
@@ -164,8 +168,9 @@
 | 2026-10-15 | 0 | Added GitHub–ChatGPT Markdown collaboration workflow | Follow the review and documentation process |
 | 2026-10-15 | 0 | Added README and planning docs for stack, architecture, MVP, design decisions, and evaluation | Choose build tool, verify local model and begin implementation |
 | 2026-10-15 | 0 | Documented proposed repository tree and package responsibilities | Developer to scaffold modules incrementally |
-| 2026-10-16 | 1 | Reviewed `feature/milestone-1`; exception classification, retries, typed API, tests and Docker integration present; developer confirmed verification checks passed | Record RAM/VRAM metrics when available; proceed to Milestone 2 after merge |
+| 2026-10-16 | 1 | Reviewed `feature/milestone-1`; exception classification, retries, typed API, tests and Docker integration present; developer confirmed verification checks passed | Merge before Milestone 2; optional numeric RAM/VRAM documentation |
+| 2026-10-16 | 0–1 | Re-audited Milestone 0: README, ignore file, Maven and scope confirmed. Developer confirms RAM/VRAM verification; no values published | Add license and optional GitHub milestone issues |
 
 ---
 
-**Current next action:** Review and merge `feature/milestone-1` into `main`, then begin Milestone 2 synthetic incidents and read-only tools. Capture RAM/VRAM metrics as a documentation follow-up. See [ChatGPT collaboration workflow](docs/CHATGPT_COLLABORATION.md). Keep the scope focused on an evidence-backed incident investigator, not an unrestricted autonomous production agent.
+**Current next action:** Review and merge `feature/milestone-1` into `main`, then begin Milestone 2 synthetic incidents and read-only tools. If useful for reproducibility, add approximate RAM/VRAM numbers to a Markdown benchmark note later. Milestone 0 still needs a license and milestone GitHub Issues. See [ChatGPT collaboration workflow](docs/CHATGPT_COLLABORATION.md). Keep the scope focused on an evidence-backed incident investigator, not an unrestricted autonomous production agent.
