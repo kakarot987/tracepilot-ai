@@ -25,6 +25,33 @@ services:
       - tracepilot-network
 
 
+  postgres:
+    image: postgres:17
+    container_name: tracepilot-postgres
+    restart: unless-stopped
+
+    environment:
+      POSTGRES_DB: tracepilot
+      POSTGRES_USER: tracepilot
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:?Set POSTGRES_PASSWORD}
+
+    ports:
+      - "127.0.0.1:5433:5432"
+
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+
+    healthcheck:
+      test:
+        - CMD-SHELL
+        - pg_isready -U tracepilot -d tracepilot
+      interval: 5s
+      timeout: 3s
+      retries: 10
+
+    networks:
+      - tracepilot-network
+
   backend:
     build:
       context: ../tracepilot-backend
@@ -37,10 +64,17 @@ services:
       - "127.0.0.1:8080:8080"
 
     environment:
+      SPRING_PROFILES_ACTIVE: postgres
       OLLAMA_BASE_URL: http://ollama:11434
+      DB_URL: jdbc:postgresql://postgres:5432/tracepilot
+      DB_USERNAME: tracepilot
+      DB_PASSWORD: ${POSTGRES_PASSWORD:?Set POSTGRES_PASSWORD}
 
     depends_on:
-      - ollama
+      postgres:
+        condition: service_healthy
+      ollama:
+        condition: service_started
 
     networks:
       - tracepilot-network
@@ -48,6 +82,7 @@ services:
 
 volumes:
   ollama_data:
+  postgres_data:
 
 networks:
   tracepilot-network:

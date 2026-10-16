@@ -4,12 +4,14 @@ package com.tracepilot.tools.history;
 import com.tracepilot.incident.domain.HistoricalIncident;
 import com.tracepilot.incident.repository.IncidentHistoryRepository;
 import com.tracepilot.incident.repository.IncidentRepository;
+import org.springframework.context.annotation.Profile;
 import org.springframework.stereotype.Component;
 
 import java.util.List;
 import java.util.Objects;
 
 @Component
+@Profile("simulator")
 public class GetIncidentHistoryTool {
 
     private static final int MAX_ROWS = 10;

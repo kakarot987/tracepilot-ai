@@ -5,6 +5,7 @@ import com.tracepilot.incident.repository.IncidentRepository;
 import com.tracepilot.telemetry.domain.LogEvidence;
 import com.tracepilot.telemetry.repository.LogEvidenceRepository;
 
+import org.springframework.context.annotation.Profile;
 import org.springframework.stereotype.Component;
 
 import java.time.Duration;
@@ -13,6 +14,7 @@ import java.util.List;
 import java.util.Objects;
 
 @Component
+@Profile("simulator")
 public class SearchLogsTool {
 
     private static final int MAX_ROWS = 50;
