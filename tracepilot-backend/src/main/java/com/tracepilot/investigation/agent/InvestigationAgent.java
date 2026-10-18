@@ -11,6 +11,8 @@ import org.springframework.ai.chat.client.ChatClient;
 import org.springframework.ai.tool.ToolCallback;
 import org.springframework.context.annotation.Profile;
 import org.springframework.stereotype.Service;
+import com.tracepilot.investigation.service.InvestigationConflictException;
+import java.util.UUID;
 
 import java.time.Duration;
 import java.util.List;
@@ -105,18 +107,20 @@ public class InvestigationAgent {
                     .content();
 
             if (budget.isExpired()) {
-                return finishWithoutReport(
+                return finalizeRun(
                         run.id(),
                         InvestigationStatus.TIMED_OUT,
+                        "",
                         "Investigation deadline exceeded",
                         budget
                 );
             }
 
             if (response == null || response.isBlank()) {
-                return finishWithoutReport(
+                return finalizeRun(
                         run.id(),
                         InvestigationStatus.INSUFFICIENT_EVIDENCE,
+                        "",
                         null,
                         budget
                 );
@@ -130,6 +134,7 @@ public class InvestigationAgent {
              * not an accepted investigation report.
              */
 
+
             var persistedEvidence =
                     investigations.evidence(run.id());
 
@@ -139,33 +144,35 @@ public class InvestigationAgent {
             );
 
             if (!validation.valid()) {
-
-                investigations.finish(
-                        run.id(),
-                        InvestigationStatus.INSUFFICIENT_EVIDENCE,
-                        null
-                );
-
-                return new AgentExecution(
+                return finalizeRun(
                         run.id(),
                         InvestigationStatus.INSUFFICIENT_EVIDENCE,
                         "",
-                        budget.toolCallsUsed()
+                        null,
+                        budget
                 );
             }
 
-            investigations.finish(
+// Recheck the deadline before trying to commit
+// the model's result.
+            if (budget.isExpired()) {
+                return finalizeRun(
+                        run.id(),
+                        InvestigationStatus.TIMED_OUT,
+                        "",
+                        "Investigation deadline exceeded",
+                        budget
+                );
+            }
+
+            return finalizeRun(
                     run.id(),
                     InvestigationStatus.COMPLETED,
-                    null
+                    response,
+                    null,
+                    budget
             );
 
-            return new AgentExecution(
-                    run.id(),
-                    InvestigationStatus.COMPLETED,
-                    truncate(response, 4000),
-                    budget.toolCallsUsed()
-            );
 
         } catch (RuntimeException ex) {
 
@@ -174,21 +181,17 @@ public class InvestigationAgent {
                             ? InvestigationStatus.TIMED_OUT
                             : InvestigationStatus.FAILED;
 
-            // Never store an exception stack trace
-            // or provider credentials in the database.
-            investigations.finish(
-                    run.id(),
-                    status,
-                    "Agent execution failed"
-            );
-
-            return new AgentExecution(
+            // Do not expose provider errors, stack traces,
+            // secrets or unvalidated model responses.
+            return finalizeRun(
                     run.id(),
                     status,
                     "",
-                    budget.toolCallsUsed()
+                    "Agent execution failed",
+                    budget
             );
         }
+
     }
 
     private AgentExecution finishWithoutReport(
@@ -233,4 +236,50 @@ public class InvestigationAgent {
                 ? value
                 : value.substring(0, maxLength);
     }
+
+    private AgentExecution finalizeRun(
+            UUID runId,
+            InvestigationStatus desiredStatus,
+            String draft,
+            String reason,
+            InvestigationBudget budget) {
+
+        try {
+            investigations.finish(
+                    runId,
+                    desiredStatus,
+                    reason
+            );
+
+            return new AgentExecution(
+                    runId,
+                    desiredStatus,
+                    desiredStatus == InvestigationStatus.COMPLETED
+                            ? truncate(draft, 4000)
+                            : "",
+                    budget.toolCallsUsed()
+            );
+
+        } catch (InvestigationConflictException conflict) {
+
+            // Another process may already have finalized
+            // the run, for example the recovery job.
+            //
+            // Never overwrite its terminal status or
+            // return the late model analysis.
+            var persisted = investigations.get(runId);
+
+            if (!persisted.status().isTerminal()) {
+                throw conflict;
+            }
+
+            return new AgentExecution(
+                    runId,
+                    persisted.status(),
+                    "",
+                    budget.toolCallsUsed()
+            );
+        }
+    }
+
 }
