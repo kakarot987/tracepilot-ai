@@ -28,4 +28,6 @@ public interface InvestigationRunRepository {
     List<EvidenceReference> findEvidence(UUID investigationId);
 
     boolean lockIfRunning(UUID id);
+
+    int expireStaleRuns(java.time.Instant cutoff);
 }

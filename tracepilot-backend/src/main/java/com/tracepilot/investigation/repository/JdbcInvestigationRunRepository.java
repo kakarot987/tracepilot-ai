@@ -161,4 +161,35 @@ public class JdbcInvestigationRunRepository
                 .orElse(false);
     }
 
+    @Override
+    public int expireStaleRuns(java.time.Instant cutoff) {
+
+        if (cutoff == null) {
+            throw new IllegalArgumentException(
+                    "cutoff is required"
+            );
+        }
+
+        return jdbc.sql("""
+            UPDATE investigation_runs
+            SET status = 'TIMED_OUT',
+                completed_at = GREATEST(
+                    clock_timestamp(),
+                    started_at
+                ),
+                failure_reason =
+                    'Investigation exceeded recovery deadline'
+            WHERE status = 'RUNNING'
+              AND started_at < :cutoff
+            """)
+                .param(
+                        "cutoff",
+                        java.time.OffsetDateTime.ofInstant(
+                                cutoff,
+                                java.time.ZoneOffset.UTC
+                        )
+                )
+                .update();
+    }
+
 }
