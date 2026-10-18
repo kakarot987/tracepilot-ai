@@ -23,9 +23,7 @@ class InvestigationAgentFinalizationTest {
             mock(InvestigationService.class);
 
     private InvestigationAgent agent() {
-        var builder = mock(ChatClient.Builder.class);
-        when(builder.build())
-                .thenReturn(mock(ChatClient.class));
+        var builder = mock(BoundedModelRunner.class);
 
         return new InvestigationAgent(
                 builder,

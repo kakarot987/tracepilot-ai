@@ -17,10 +17,8 @@ class InvestigationAgentTest {
     @Test
     void rejectsUnknownIncidentBeforeStartingRun() {
 
-        var builder = mock(ChatClient.Builder.class);
+        var builder = mock(BoundedModelRunner.class);
         var client = mock(ChatClient.class);
-
-        when(builder.build()).thenReturn(client);
 
         var incidents = mock(IncidentRepository.class);
         var investigations = mock(InvestigationService.class);
