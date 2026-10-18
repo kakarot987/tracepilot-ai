@@ -88,7 +88,7 @@ public class JdbcInvestigationRunRepository
         int updated = jdbc.sql("""
                 UPDATE investigation_runs
                 SET status = :status,
-                    completed_at = CURRENT_TIMESTAMP,
+                    completed_at = GREATEST(clock_timestamp(), started_at),
                     failure_reason = :failureReason
                 WHERE id = :id
                   AND status = 'RUNNING'
