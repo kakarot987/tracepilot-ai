@@ -8,7 +8,7 @@ import org.springframework.http.HttpStatus;
 
 import static org.junit.jupiter.api.Assertions.*;
 
-class ApiExceptionHandlerTest {
+class InvestigationApiExceptionHandlerTest {
 
     private final ApiExceptionHandler handler =
             new ApiExceptionHandler();
