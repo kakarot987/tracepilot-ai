@@ -6,11 +6,9 @@ import com.tracepilot.telemetry.domain.LogEvidence;
 import com.tracepilot.tools.common.InvestigationToolExecutor;
 import com.tracepilot.tools.common.ToolResult;
 
-import org.springframework.context.annotation.Profile;
 import org.springframework.stereotype.Component;
 
 @Component
-@Profile("simulator")
 public class BoundedSearchLogsTool {
 
     private final SearchLogsTool searchLogsTool;

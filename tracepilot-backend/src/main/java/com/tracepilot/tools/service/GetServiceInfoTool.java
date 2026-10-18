@@ -4,14 +4,12 @@ package com.tracepilot.tools.service;
 import com.tracepilot.incident.domain.ServiceInfo;
 import com.tracepilot.incident.repository.IncidentRepository;
 import com.tracepilot.incident.repository.ServiceInfoRepository;
-import org.springframework.context.annotation.Profile;
 import org.springframework.stereotype.Component;
 
 import java.util.Objects;
 import java.util.Optional;
 
 @Component
-@Profile("simulator")
 public class GetServiceInfoTool {
 
     private final IncidentRepository incidents;

@@ -5,7 +5,6 @@ import com.tracepilot.incident.repository.IncidentRepository;
 import com.tracepilot.telemetry.domain.DeploymentEvidence;
 import com.tracepilot.telemetry.repository.DeploymentEvidenceRepository;
 
-import org.springframework.context.annotation.Profile;
 import org.springframework.stereotype.Component;
 
 import java.time.Duration;
@@ -13,7 +12,6 @@ import java.util.List;
 import java.util.Objects;
 
 @Component
-@Profile("simulator")
 public class GetRecentDeploymentsTool {
 
     private static final Duration MAX_WINDOW =
