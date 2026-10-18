@@ -3,7 +3,7 @@ spring:
   datasource:
     url: ${DB_URL:jdbc:postgresql://localhost:5433/tracepilot}
     username: ${DB_USERNAME:tracepilot}
-    password: local-dev-only-password
+    password: ${DB_PASSWORD}
     hikari:
       maximum-pool-size: 5
       minimum-idle: 1
