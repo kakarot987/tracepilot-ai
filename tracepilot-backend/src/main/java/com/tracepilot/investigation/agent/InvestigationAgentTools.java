@@ -16,7 +16,10 @@ import com.tracepilot.tools.deployments.GetRecentDeploymentsRequest;
 import com.tracepilot.tools.deployments.GetRecentDeploymentsTool;
 import com.tracepilot.tools.history.GetIncidentHistoryRequest;
 import com.tracepilot.tools.history.GetIncidentHistoryTool;
-
+import com.tracepilot.investigation.domain.EvidenceType;
+import com.tracepilot.tools.common.ToolStatus;
+import java.util.function.BiConsumer;
+import java.util.function.Function;
 import org.springframework.ai.tool.annotation.Tool;
 import org.springframework.ai.tool.annotation.ToolParam;
 
@@ -35,6 +38,8 @@ public final class InvestigationAgentTools {
     private final GetRecentDeploymentsTool deployments;
     private final GetIncidentHistoryTool history;
 
+    private final BiConsumer<EvidenceType, String> evidenceRecorder;
+
     public InvestigationAgentTools(
             String incidentId,
             InvestigationBudget budget,
@@ -43,6 +48,23 @@ public final class InvestigationAgentTools {
             GetServiceInfoTool services,
             GetRecentDeploymentsTool deployments,
             GetIncidentHistoryTool history) {
+
+        this(
+                incidentId, budget, executor,
+                logs, services, deployments, history,
+                (type, evidenceId) -> {}
+        );
+    }
+
+    public InvestigationAgentTools(
+            String incidentId,
+            InvestigationBudget budget,
+            InvestigationToolExecutor executor,
+            SearchLogsTool logs,
+            GetServiceInfoTool services,
+            GetRecentDeploymentsTool deployments,
+            GetIncidentHistoryTool history,
+            BiConsumer<EvidenceType, String> evidenceRecorder) {
 
         if (incidentId == null || incidentId.isBlank()) {
             throw new IllegalArgumentException(
@@ -57,6 +79,8 @@ public final class InvestigationAgentTools {
         this.services = Objects.requireNonNull(services);
         this.deployments = Objects.requireNonNull(deployments);
         this.history = Objects.requireNonNull(history);
+        this.evidenceRecorder =
+                Objects.requireNonNull(evidenceRecorder);
     }
 
     @Tool(
@@ -73,13 +97,17 @@ public final class InvestigationAgentTools {
             @ToolParam(description = "Maximum rows, 1 to 50")
             Integer limit) {
 
-        return executor.execute(budget, () ->
-                logs.search(new SearchLogsRequest(
-                        incidentId,
-                        Instant.parse(from),
-                        Instant.parse(to),
-                        limit
-                ))
+        return capture(
+                executor.execute(budget, () ->
+                        logs.search(new SearchLogsRequest(
+                                incidentId,
+                                Instant.parse(from),
+                                Instant.parse(to),
+                                limit
+                        ))
+                ),
+                EvidenceType.LOG,
+                LogEvidence::evidenceId
         );
     }
 
@@ -88,8 +116,12 @@ public final class InvestigationAgentTools {
             description = "Read service metadata for the current incident."
     )
     public ToolResult<ServiceInfo> getServiceInfo() {
-        return executor.execute(budget, () ->
-                services.get(incidentId).stream().toList()
+        return capture(
+                executor.execute(budget, () ->
+                        services.get(incidentId).stream().toList()
+                ),
+                EvidenceType.SERVICE_INFO,
+                info -> "SVC-" + info.serviceName()
         );
     }
 
@@ -108,15 +140,19 @@ public final class InvestigationAgentTools {
             @ToolParam(description = "Maximum rows, 1 to 20")
             Integer limit) {
 
-        return executor.execute(budget, () ->
-                deployments.get(
-                        new GetRecentDeploymentsRequest(
-                                incidentId,
-                                Instant.parse(from),
-                                Instant.parse(to),
-                                limit
+        return capture(
+                executor.execute(budget, () ->
+                        deployments.get(
+                                new GetRecentDeploymentsRequest(
+                                        incidentId,
+                                        Instant.parse(from),
+                                        Instant.parse(to),
+                                        limit
+                                )
                         )
-                )
+                ),
+                EvidenceType.DEPLOYMENT,
+                DeploymentEvidence::evidenceId
         );
     }
 
@@ -129,13 +165,44 @@ public final class InvestigationAgentTools {
             @ToolParam(description = "Maximum rows, 1 to 10")
             Integer limit) {
 
-        return executor.execute(budget, () ->
-                history.get(
-                        new GetIncidentHistoryRequest(
-                                incidentId,
-                                limit
+        return capture(
+                executor.execute(budget, () ->
+                        history.get(
+                                new GetIncidentHistoryRequest(
+                                        incidentId,
+                                        limit
+                                )
                         )
-                )
+                ),
+                EvidenceType.INCIDENT_HISTORY,
+                HistoricalIncident::evidenceId
         );
     }
+
+    private <T> ToolResult<T> capture(
+            ToolResult<T> result,
+            EvidenceType type,
+            Function<T, String> idExtractor) {
+
+        if (result.status() != ToolStatus.SUCCESS) {
+            return result;
+        }
+
+        for (T item : result.data()) {
+            String evidenceId = idExtractor.apply(item);
+
+            if (evidenceId == null || evidenceId.isBlank()) {
+                throw new IllegalStateException(
+                        "Evidence ID missing"
+                );
+            }
+
+            // Persist before returning the evidence to the model.
+            // Do not silently discard persistence failures.
+            evidenceRecorder.accept(type, evidenceId);
+        }
+
+        return result;
+    }
+
 }

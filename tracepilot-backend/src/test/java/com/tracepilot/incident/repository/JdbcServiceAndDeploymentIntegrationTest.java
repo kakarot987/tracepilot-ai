@@ -12,7 +12,9 @@ import java.time.Instant;
 
 import static org.junit.jupiter.api.Assertions.*;
 
-@SpringBootTest
+@SpringBootTest(properties = {
+    "spring.config.additional-location=optional:file:./config/"
+})
 @ActiveProfiles("postgres")
 @EnabledIfEnvironmentVariable(
         named = "TRACEPILOT_POSTGRES_TEST",

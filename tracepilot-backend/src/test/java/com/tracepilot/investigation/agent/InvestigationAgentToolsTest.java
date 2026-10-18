@@ -131,4 +131,51 @@ class InvestigationAgentToolsTest {
 
         verifyNoInteractions(history);
     }
+
+    @Test
+    void recordsOnlySuccessfullyReturnedEvidence() {
+
+        var recorded = new java.util.ArrayList<String>();
+
+        when(logs.search(any(SearchLogsRequest.class)))
+                .thenReturn(List.of(
+                        new com.tracepilot.telemetry.domain.LogEvidence(
+                                "LOG-PAY-001",
+                                "INC-PAY-001",
+                                "payment-service",
+                                java.time.Instant.parse(
+                                        "2026-10-01T10:00:00Z"
+                                ),
+                                "ERROR",
+                                "Connection timeout"
+                        )
+                ));
+
+        var adapter = new InvestigationAgentTools(
+                "INC-PAY-001",
+                new InvestigationBudget(
+                        3, java.time.Duration.ofMinutes(1)
+                ),
+                executor,
+                logs,
+                services,
+                deployments,
+                history,
+                (type, id) -> recorded.add(
+                        type.name() + ":" + id
+                )
+        );
+
+        adapter.searchLogs(
+                "2026-10-01T10:00:00Z",
+                "2026-10-01T10:01:00Z",
+                10
+        );
+
+        assertEquals(
+                List.of("LOG:LOG-PAY-001"),
+                recorded
+        );
+    }
+
 }

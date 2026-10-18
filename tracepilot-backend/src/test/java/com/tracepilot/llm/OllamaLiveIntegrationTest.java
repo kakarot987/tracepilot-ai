@@ -14,7 +14,9 @@ import java.util.Set;
 
 import static org.junit.jupiter.api.Assertions.*;
 
-@SpringBootTest
+@SpringBootTest(properties = {
+    "spring.config.additional-location=optional:file:./config/"
+})
 @EnabledIfEnvironmentVariable(
         named = "TRACEPILOT_LIVE_OLLAMA",
         matches = "true"

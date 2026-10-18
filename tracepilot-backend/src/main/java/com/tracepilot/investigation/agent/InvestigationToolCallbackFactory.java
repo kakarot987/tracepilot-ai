@@ -8,13 +8,14 @@ import com.tracepilot.tools.logs.SearchLogsTool;
 import com.tracepilot.tools.service.GetServiceInfoTool;
 import com.tracepilot.tools.deployments.GetRecentDeploymentsTool;
 import com.tracepilot.tools.history.GetIncidentHistoryTool;
-
+import com.tracepilot.investigation.domain.EvidenceType;
 import org.springframework.ai.support.ToolCallbacks;
 import org.springframework.ai.tool.ToolCallback;
 import org.springframework.stereotype.Component;
 
 import java.util.Arrays;
 import java.util.List;
+import java.util.function.BiConsumer;
 
 @Component
 public class InvestigationToolCallbackFactory {
@@ -39,22 +40,36 @@ public class InvestigationToolCallbackFactory {
         this.history = history;
     }
 
+
     public List<ToolCallback> create(
             String incidentId,
             InvestigationBudget budget) {
 
-        var tools = new InvestigationAgentTools(
+        return create(
+                incidentId,
+                budget,
+                (type, evidenceId) -> {}
+        );
+    }
+
+    public List<ToolCallback> create(
+            String incidentId,
+            InvestigationBudget budget,
+            BiConsumer<EvidenceType, String> recorder) {
+
+        var runTools = new InvestigationAgentTools(
                 incidentId,
                 budget,
                 executor,
                 logs,
                 services,
                 deployments,
-                history
+                history,
+                recorder
         );
 
         return List.copyOf(
-                Arrays.asList(ToolCallbacks.from(tools))
+                Arrays.asList(ToolCallbacks.from(runTools))
         );
     }
 }

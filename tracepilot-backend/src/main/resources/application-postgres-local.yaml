@@ -3,4 +3,4 @@ spring:
   datasource:
     url: jdbc:postgresql://localhost:5433/tracepilot
     username: tracepilot
-    password: ${DB_PASSWORD}
+    password: local-dev-only-password

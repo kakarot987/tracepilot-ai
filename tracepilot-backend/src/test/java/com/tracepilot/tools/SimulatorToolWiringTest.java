@@ -13,7 +13,9 @@ import org.springframework.test.context.ActiveProfiles;
 
 import static org.junit.jupiter.api.Assertions.*;
 
-@SpringBootTest
+@SpringBootTest(properties = {
+    "spring.config.additional-location=optional:file:./config/"
+})
 @ActiveProfiles("simulator")
 class SimulatorToolWiringTest {
 

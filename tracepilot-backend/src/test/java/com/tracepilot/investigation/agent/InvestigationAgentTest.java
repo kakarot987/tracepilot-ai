@@ -25,7 +25,7 @@ class InvestigationAgentTest {
         var incidents = mock(IncidentRepository.class);
         var investigations = mock(InvestigationService.class);
         var tools = mock(InvestigationToolCallbackFactory.class);
-
+        var citationValidator = mock(EvidenceCitationValidator.class);
         when(incidents.findById("INC-UNKNOWN"))
                 .thenReturn(Optional.empty());
 
@@ -33,7 +33,8 @@ class InvestigationAgentTest {
                 builder,
                 incidents,
                 investigations,
-                tools
+                tools,
+                citationValidator
         );
 
         assertThrows(
