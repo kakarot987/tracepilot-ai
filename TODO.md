@@ -38,8 +38,8 @@
 - [x] Connect GitHub to ChatGPT and verify `kakarot987/tracepilot-ai` is readable.
 - [x] Document working agreements in [`docs/CHATGPT_COLLABORATION.md`](docs/CHATGPT_COLLABORATION.md).
 - [x] Add `README.md` with the one-paragraph MVP problem statement and repository overview.
-- [ ] After each meaningful implementation milestone, ask ChatGPT to review the relevant GitHub files or pull request.
-- [ ] Update `TODO.md` and the progress log when a milestone is completed (only after verifying changes in GitHub).
+- [x] Request GitHub-based implementation reviews after completed milestones (Milestones 1 and 2 reviewed).
+- [x] Update `TODO.md` and the progress log after verified milestones (continue for future milestones).
 
 **Boundary:** ChatGPT may create or edit Markdown documentation on request; application code, infrastructure, commits of non-Markdown files, and implementation remain the developer's responsibility.
 
@@ -63,17 +63,19 @@
 
 ## Milestone 2 — Synthetic incident data and tools (Week 2)
 
-- [ ] Create a synthetic incident catalog: payment timeout, DB connection exhaustion, upstream outage, rate limit, and memory pressure.
-- [ ] Generate deterministic logs and service metadata for each seeded incident; record the known root cause separately for evaluation.
-- [ ] Persist incident metadata and investigation runs (start with PostgreSQL; avoid extra services until needed).
-- [ ] Implement read-only tools: `searchLogs`, `getServiceInfo`, `getRecentDeployments`, `getIncidentHistory`.
-- [ ] Apply strict input schemas, time-window limits, row limits, and timeouts to every tool.
-- [ ] Return stable evidence IDs from tools so findings can be traced to source records.
-- [ ] Build one Investigator Agent that selects and uses tools rather than receiving all data in the prompt.
-- [ ] Limit maximum tool calls, execution time, and total steps per investigation.
-- [ ] Test no-data, tool-timeout, bad-arguments, and duplicate-request scenarios.
+- [x] Create a synthetic incident catalog: payment timeout, DB connection exhaustion, upstream outage, rate limit, and memory pressure.
+- [x] Generate deterministic logs and service metadata for each seeded incident; record the known root cause separately for evaluation.
+- [x] Persist incident metadata and investigation runs (start with PostgreSQL; avoid extra services until needed).
+- [x] Implement read-only tools: `searchLogs`, `getServiceInfo`, `getRecentDeployments`, `getIncidentHistory`.
+- [x] Apply strict tool argument validation, time-window and row limits, and bounded database queries; retain cooperative investigation deadline checks (not a hard end-to-end timeout).
+- [x] Return stable evidence IDs from tools so findings can be traced to source records.
+- [x] Build one Investigator Agent that selects and uses tools rather than receiving all data in the prompt.
+- [x] Limit tool calls (8), model requests (6), and use a cooperative 90-second investigation deadline; recover stale persisted runs after 120 seconds (not hard cancellation).
+- [x] Test no-data, tool-timeout, bad-arguments, and duplicate-request scenarios.
 
-**Exit criteria:** The agent retrieves real synthetic evidence with Java tool calls and handles failure safely.
+**Status (2026-10-19): COMPLETE — merged into `main`.** Reviewed four read-only tools, deterministic synthetic incident evidence, PostgreSQL/Flyway persistence, evidence IDs, bounded tool-calling Investigator Agent, citation ID checking, and recovery. Developer confirms Maven, PostgreSQL, and live Ollama tests pass and no real secrets remain in Git history. Timeout behavior is documented in [Milestone 2 notes](docs/milestone-2.md); a hard 90-second end-to-end timeout is **not** claimed.
+
+**Exit criteria:** Met based on source review and developer-confirmed runtime tests: the agent retrieves synthetic evidence through Java tools and handles invalid input and failures safely.
 
 Note: TracePilot validates that an investigation's cited evidence identifiers were recorded during its tool execution. This prevents acceptance of missing or unrecognized citations. It does not establish that every factual claim is logically supported by the cited evidence. Semantic claim verification is deferred to the Milestone 4 Reviewer Agent.
 
@@ -172,7 +174,8 @@ Note: TracePilot validates that an investigation's cited evidence identifiers we
 | 2026-10-15 | 0 | Documented proposed repository tree and package responsibilities | Developer to scaffold modules incrementally |
 | 2026-10-16 | 1 | Reviewed `feature/milestone-1`; exception classification, retries, typed API, tests and Docker integration present; developer confirmed verification checks passed | Merge before Milestone 2; optional numeric RAM/VRAM documentation |
 | 2026-10-16 | 0–1 | Re-audited Milestone 0: README, ignore file, Maven and scope confirmed. Developer confirms RAM/VRAM verification; no values published | Add license and optional GitHub milestone issues |
+| 2026-10-19 | 2 | `feature/milestone-2` merged into `main`; source review complete and Maven/PostgreSQL/live Ollama checks confirmed by developer | Begin Milestone 3 RAG and pgvector; license and issue housekeeping remain |
 
 ---
 
-**Current next action:** Review and merge `feature/milestone-1` into `main`, then begin Milestone 2 synthetic incidents and read-only tools. If useful for reproducibility, add approximate RAM/VRAM numbers to a Markdown benchmark note later. Milestone 0 still needs a license and milestone GitHub Issues. See [ChatGPT collaboration workflow](docs/CHATGPT_COLLABORATION.md). Keep the scope focused on an evidence-backed incident investigator, not an unrestricted autonomous production agent.
+**Current next action:** Begin Milestone 3 on a new feature branch: synthetic runbooks and postmortems, pgvector, local embeddings, indexing and evidence-linked retrieval. Milestone 0 housekeeping (license and GitHub milestone Issues) remains open; optional RAM/VRAM benchmark documentation may follow. See [ChatGPT collaboration workflow](docs/CHATGPT_COLLABORATION.md). Keep the scope focused on an evidence-backed incident investigator, not an unrestricted autonomous production agent.
