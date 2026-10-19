@@ -221,11 +221,11 @@ public class WorkflowPersistenceService {
                 .update();
 
         jdbc.sql("""
-                        UPDATE workflow_runs
-                        SET current_role = NULL,
-                            version = version + 1
-                        WHERE id = :id
-                        """)
+        UPDATE workflow_runs
+        SET active_agent_role = NULL,
+            version = version + 1
+        WHERE id = :id
+        """)
                 .param("id", workflowId)
                 .update();
     }
