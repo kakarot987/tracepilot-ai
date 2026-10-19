@@ -68,6 +68,9 @@ public class RunbookSearchService {
                         CAST(:documentType AS VARCHAR) IS NULL
                         OR d.document_type = :documentType
                     )
+                  AND 1 - (
+                         c.embedding <=> CAST(:embedding AS vector)
+                    ) >= :minSimilarity
                 ORDER BY
                     c.embedding <=> CAST(:embedding AS vector),
                     c.chunk_id

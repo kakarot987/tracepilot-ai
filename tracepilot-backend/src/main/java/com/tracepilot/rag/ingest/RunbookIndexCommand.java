@@ -1,6 +1,7 @@
 
 package com.tracepilot.rag.ingest;
 
+import org.springframework.beans.factory.annotation.Value;
 import org.springframework.boot.ApplicationArguments;
 import org.springframework.boot.ApplicationRunner;
 import org.springframework.boot.autoconfigure.condition.ConditionalOnProperty;
@@ -19,6 +20,8 @@ import java.util.stream.Stream;
 )
 public class RunbookIndexCommand
         implements ApplicationRunner {
+    @Value("${tracepilot.rag.directory:../simulator/runbooks}")
+    private String directory;
 
     private final RunbookIndexer indexer;
 
@@ -30,12 +33,7 @@ public class RunbookIndexCommand
     public void run(ApplicationArguments args)
             throws Exception {
 
-        Path directory = Path.of(
-                System.getProperty(
-                        "tracepilot.rag.directory",
-                        "../simulator/runbooks"
-                )
-        );
+        Path directory = Path.of(this.directory);
 
         if (!Files.isDirectory(directory)) {
             throw new IllegalStateException(

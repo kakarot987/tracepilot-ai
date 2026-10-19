@@ -35,6 +35,8 @@ tracepilot:
     retry-backoff: 500ms
     # Configuration limit, enforced by an outer request deadline
     request-deadline: 100s
+  rag:
+    min-similarity: 0.0
 
 server:
   port: 8080
