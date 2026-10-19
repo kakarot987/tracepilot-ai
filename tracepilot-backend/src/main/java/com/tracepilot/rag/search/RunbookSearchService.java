@@ -5,7 +5,7 @@ import org.springframework.ai.embedding.EmbeddingModel;
 import org.springframework.context.annotation.Profile;
 import org.springframework.jdbc.core.simple.JdbcClient;
 import org.springframework.stereotype.Service;
-
+import org.springframework.beans.factory.annotation.Value;
 import java.util.List;
 import java.util.Objects;
 
@@ -17,7 +17,8 @@ public class RunbookSearchService {
 
     private final EmbeddingModel embeddings;
     private final JdbcClient jdbc;
-
+    @Value("${tracepilot.rag.min-similarity:0.0}")
+    private double minSimilarity;
     public RunbookSearchService(
             EmbeddingModel embeddings,
             JdbcClient jdbc) {
@@ -80,6 +81,7 @@ public class RunbookSearchService {
                 .param("service", request.serviceName())
                 .param("documentType", request.documentType())
                 .param("limit", request.limit())
+                .param("minSimilarity", minSimilarity)
                 .query((rs, rowNum) ->
                         new RunbookSearchResult(
                                 rs.getString("chunk_id"),

@@ -52,7 +52,6 @@ public class RunbookIndexer {
                     document.documentId(), 0, true
             );
         }
-
         List<String> chunks =
                 parser.chunk(document.content());
 
