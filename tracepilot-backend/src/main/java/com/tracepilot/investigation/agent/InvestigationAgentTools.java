@@ -26,6 +26,7 @@ import org.springframework.ai.tool.annotation.ToolParam;
 import java.time.Instant;
 import java.util.List;
 import java.util.Objects;
+import java.time.DateTimeException;
 
 public final class InvestigationAgentTools {
 
@@ -101,8 +102,8 @@ public final class InvestigationAgentTools {
                 executor.execute(budget, () ->
                         logs.search(new SearchLogsRequest(
                                 incidentId,
-                                Instant.parse(from),
-                                Instant.parse(to),
+                                parseTimestamp(from),
+                                parseTimestamp(to),
                                 limit
                         ))
                 ),
@@ -205,4 +206,14 @@ public final class InvestigationAgentTools {
         return result;
     }
 
+    private Instant parseTimestamp(String value) {
+        try {
+            return Instant.parse(value);
+        } catch (DateTimeException | NullPointerException ex) {
+            throw new IllegalArgumentException(
+                    "Timestamp must be a valid ISO-8601 instant",
+                    ex
+            );
+        }
+    }
 }
