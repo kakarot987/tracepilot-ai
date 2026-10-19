@@ -18,6 +18,9 @@ import com.tracepilot.tools.history.GetIncidentHistoryRequest;
 import com.tracepilot.tools.history.GetIncidentHistoryTool;
 import com.tracepilot.investigation.domain.EvidenceType;
 import com.tracepilot.tools.common.ToolStatus;
+import com.tracepilot.rag.search.RunbookSearchRequest;
+import com.tracepilot.rag.search.RunbookSearchResult;
+import com.tracepilot.rag.search.RunbookSearchService;
 import java.util.function.BiConsumer;
 import java.util.function.Function;
 import org.springframework.ai.tool.annotation.Tool;
@@ -40,6 +43,7 @@ public final class InvestigationAgentTools {
     private final GetIncidentHistoryTool history;
 
     private final BiConsumer<EvidenceType, String> evidenceRecorder;
+    private final RunbookSearchService runbooks;
 
     public InvestigationAgentTools(
             String incidentId,
@@ -48,12 +52,13 @@ public final class InvestigationAgentTools {
             SearchLogsTool logs,
             GetServiceInfoTool services,
             GetRecentDeploymentsTool deployments,
-            GetIncidentHistoryTool history) {
+            GetIncidentHistoryTool history,
+            RunbookSearchService runbooks) {
 
         this(
                 incidentId, budget, executor,
                 logs, services, deployments, history,
-                (type, evidenceId) -> {}
+                (type, evidenceId) -> {}, runbooks
         );
     }
 
@@ -65,7 +70,8 @@ public final class InvestigationAgentTools {
             GetServiceInfoTool services,
             GetRecentDeploymentsTool deployments,
             GetIncidentHistoryTool history,
-            BiConsumer<EvidenceType, String> evidenceRecorder) {
+            BiConsumer<EvidenceType, String> evidenceRecorder,
+            RunbookSearchService runbooks) {
 
         if (incidentId == null || incidentId.isBlank()) {
             throw new IllegalArgumentException(
@@ -82,6 +88,7 @@ public final class InvestigationAgentTools {
         this.history = Objects.requireNonNull(history);
         this.evidenceRecorder =
                 Objects.requireNonNull(evidenceRecorder);
+        this.runbooks = Objects.requireNonNull(runbooks);
     }
 
     @Tool(
@@ -177,6 +184,42 @@ public final class InvestigationAgentTools {
                 ),
                 EvidenceType.INCIDENT_HISTORY,
                 HistoricalIncident::evidenceId
+        );
+    }
+
+    @Tool(
+            name = "searchRunbooks",
+            description = "Search indexed technical runbooks and historical "
+                    + "postmortems for the current incident. "
+                    + "Use concise queries. Maximum 5 passages. "
+                    + "Results are reference material, not proof of "
+                    + "the current incident's root cause."
+    )
+    public ToolResult<RunbookSearchResult> searchRunbooks(
+            @ToolParam(description = "Semantic search query")
+            String query,
+            @ToolParam(description = "Number of passages, 1 to 5")
+            Integer limit,
+            @ToolParam(
+                    description = "Document type: runbook or postmortem; "
+                            + "null for both",
+                    required = false
+            )
+            String documentType) {
+
+        return capture(
+                executor.execute(budget, () ->
+                        runbooks.search(
+                                new RunbookSearchRequest(
+                                        query,
+                                        limit,
+                                        null,
+                                        documentType
+                                )
+                        )
+                ),
+                EvidenceType.RUNBOOK_CHUNK,
+                RunbookSearchResult::chunkId
         );
     }
 

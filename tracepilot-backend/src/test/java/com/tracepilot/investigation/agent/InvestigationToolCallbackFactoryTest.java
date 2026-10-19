@@ -2,6 +2,7 @@
 package com.tracepilot.investigation.agent;
 
 import com.tracepilot.investigation.domain.InvestigationBudget;
+import com.tracepilot.rag.search.RunbookSearchService;
 import com.tracepilot.tools.common.InvestigationToolExecutor;
 import com.tracepilot.tools.logs.SearchLogsTool;
 import com.tracepilot.tools.service.GetServiceInfoTool;
@@ -26,7 +27,8 @@ class InvestigationToolCallbackFactoryTest {
                 mock(SearchLogsTool.class),
                 mock(GetServiceInfoTool.class),
                 mock(GetRecentDeploymentsTool.class),
-                mock(GetIncidentHistoryTool.class)
+                mock(GetIncidentHistoryTool.class),
+                mock(RunbookSearchService.class)
         );
 
         var callbacks = factory.create(

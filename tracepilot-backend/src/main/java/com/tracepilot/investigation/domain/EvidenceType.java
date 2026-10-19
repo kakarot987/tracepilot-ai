@@ -5,5 +5,6 @@ public enum EvidenceType {
     LOG,
     DEPLOYMENT,
     SERVICE_INFO,
-    INCIDENT_HISTORY
+    INCIDENT_HISTORY,
+    RUNBOOK_CHUNK
 }

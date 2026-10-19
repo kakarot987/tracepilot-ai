@@ -12,6 +12,7 @@ import com.tracepilot.investigation.domain.EvidenceType;
 import org.springframework.ai.support.ToolCallbacks;
 import org.springframework.ai.tool.ToolCallback;
 import org.springframework.stereotype.Component;
+import com.tracepilot.rag.search.RunbookSearchService;
 
 import java.util.Arrays;
 import java.util.List;
@@ -25,19 +26,22 @@ public class InvestigationToolCallbackFactory {
     private final GetServiceInfoTool services;
     private final GetRecentDeploymentsTool deployments;
     private final GetIncidentHistoryTool history;
+    private final RunbookSearchService runbooks;
 
     public InvestigationToolCallbackFactory(
             InvestigationToolExecutor executor,
             SearchLogsTool logs,
             GetServiceInfoTool services,
             GetRecentDeploymentsTool deployments,
-            GetIncidentHistoryTool history) {
+            GetIncidentHistoryTool history,
+            RunbookSearchService runbooks) {
 
         this.executor = executor;
         this.logs = logs;
         this.services = services;
         this.deployments = deployments;
         this.history = history;
+        this.runbooks = runbooks;
     }
 
 
@@ -65,7 +69,8 @@ public class InvestigationToolCallbackFactory {
                 services,
                 deployments,
                 history,
-                recorder
+                recorder,
+                runbooks
         );
 
         return List.copyOf(
