@@ -26,7 +26,7 @@ services:
 
 
   postgres:
-    image: postgres:17
+    image: pgvector/pgvector:0.8.7-pg17
     container_name: tracepilot-postgres
     restart: unless-stopped
 
