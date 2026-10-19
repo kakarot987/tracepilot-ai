@@ -3,6 +3,7 @@ package com.tracepilot.investigation.agent;
 
 import com.tracepilot.investigation.domain.InvestigationBudget;
 import com.tracepilot.investigation.domain.InvestigationLimitExceededException;
+import com.tracepilot.rag.search.RunbookSearchService;
 import com.tracepilot.tools.common.InvestigationToolExecutor;
 import com.tracepilot.tools.common.ToolResult;
 import com.tracepilot.tools.common.ToolStatus;
@@ -30,7 +31,7 @@ class InvestigationAgentToolsTest {
     private GetRecentDeploymentsTool deployments;
     private GetIncidentHistoryTool history;
     private InvestigationToolExecutor executor;
-
+    private RunbookSearchService runbooks;
     @BeforeEach
     void setUp() {
         logs = mock(SearchLogsTool.class);
@@ -38,6 +39,7 @@ class InvestigationAgentToolsTest {
         deployments = mock(GetRecentDeploymentsTool.class);
         history = mock(GetIncidentHistoryTool.class);
         executor = new InvestigationToolExecutor();
+        runbooks = mock(RunbookSearchService.class);
     }
 
     private InvestigationAgentTools tools(
@@ -50,7 +52,8 @@ class InvestigationAgentToolsTest {
                 logs,
                 services,
                 deployments,
-                history
+                history,
+                runbooks
         );
     }
 
@@ -164,7 +167,8 @@ class InvestigationAgentToolsTest {
                 history,
                 (type, id) -> recorded.add(
                         type.name() + ":" + id
-                )
+                ),
+                runbooks
         );
 
         adapter.searchLogs(
@@ -191,7 +195,8 @@ class InvestigationAgentToolsTest {
                 logs,
                 services,
                 deployments,
-                history
+                history,
+                runbooks
         );
 
         var result = adapter.getRecentDeployments(

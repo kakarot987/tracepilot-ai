@@ -26,7 +26,7 @@ services:
 
 
   postgres:
-    image: postgres:17
+    image: pgvector/pgvector:0.8.7-pg17
     container_name: tracepilot-postgres
     restart: unless-stopped
 
@@ -70,6 +70,7 @@ services:
       DB_USERNAME: tracepilot
       DB_PASSWORD: ${POSTGRES_PASSWORD:?Set POSTGRES_PASSWORD}
       JAVA_TOOL_OPTIONS: "-Duser.timezone=UTC"
+      RAG_EMBEDDING_MODEL_ID: ${RAG_EMBEDDING_MODEL_ID:-embeddinggemma-local-v1}
 
     depends_on:
       postgres:
@@ -80,6 +81,31 @@ services:
     networks:
       - tracepilot-network
 
+  rag-indexer:
+    profiles: ["index"]
+    build:
+      context: ../tracepilot-backend
+      dockerfile: Dockerfile
+    environment:
+      SPRING_PROFILES_ACTIVE: postgres
+      SPRING_MAIN_WEB_APPLICATION_TYPE: none
+      OLLAMA_BASE_URL: http://ollama:11434
+      DB_URL: jdbc:postgresql://postgres:5432/tracepilot
+      DB_USERNAME: tracepilot
+      DB_PASSWORD: ${POSTGRES_PASSWORD:?Set POSTGRES_PASSWORD}
+      TRACEPILOT_RAG_INDEX_ENABLED: "true"
+      TRACEPILOT_RAG_DIRECTORY: /app/runbooks
+      RAG_EMBEDDING_MODEL_ID: ${RAG_EMBEDDING_MODEL_ID:-embeddinggemma-local-v1}
+    volumes:
+      - ../simulator/runbooks:/app/runbooks:ro
+    depends_on:
+      postgres:
+        condition: service_healthy
+      ollama:
+        condition: service_started
+    networks:
+      - tracepilot-network
+    restart: "no"
 
 volumes:
   ollama_data:

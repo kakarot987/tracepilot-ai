@@ -16,6 +16,7 @@ public class EvidenceCitationValidator {
             Pattern.compile(
                     "\\b(?:LOG|DEP|HIST)-[A-Z0-9-]+\\b"
                             + "|\\bSVC-[A-Za-z0-9-]+\\b"
+                            + "|\\b(?:RB|PM)-\\d{3}-v\\d+-c\\d{3,}\\b"
             );
 
     public CitationValidation validate(

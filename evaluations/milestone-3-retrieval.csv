@@ -1,0 +1,11 @@
+case_id,query,expected_document_id
+RAG-001,payment requests timeout waiting for database connections,RB-001
+RAG-002,JDBC connection pool exhausted and database transactions are slow,RB-002
+RAG-003,checkout returns HTTP 502 because upstream pricing is unavailable,RB-003
+RAG-004,API gateway rejects requests with HTTP 429,RB-004
+RAG-005,inventory Java process fails with heap space out of memory,RB-005
+RAG-006,historical payment latency caused by long running SQL queries,PM-001
+RAG-007,previous order batch job caused database connection saturation,PM-002
+RAG-008,historical pricing dependency overloaded request queue,PM-003
+RAG-009,previous gateway incident shared client rate limit identity,PM-004
+RAG-010,historical inventory import retained too many objects in memory,PM-005

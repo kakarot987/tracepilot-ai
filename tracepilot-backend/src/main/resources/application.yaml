@@ -4,6 +4,8 @@ spring:
     name: tracepilot-backend
 
   ai:
+    model:
+      embedding: ollama
     ollama:
       base-url: ${OLLAMA_BASE_URL:http://localhost:11434}
       chat:
@@ -13,6 +15,10 @@ spring:
           temperature: 0.2
           num-ctx: 4096
           num-predict: 256
+      embedding:
+        model: embeddinggemma
+        keep-alive: "0"
+        truncate: false
       init:
         pull-model-strategy: never
 
@@ -29,6 +35,9 @@ tracepilot:
     retry-backoff: 500ms
     # Configuration limit, enforced by an outer request deadline
     request-deadline: 100s
+  rag:
+    min-similarity: 0.0
+    embedding-model-id: ${RAG_EMBEDDING_MODEL_ID:embeddinggemma-local-v1}
 
 server:
   port: 8080

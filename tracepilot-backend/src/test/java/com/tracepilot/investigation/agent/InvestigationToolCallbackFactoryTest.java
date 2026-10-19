@@ -2,6 +2,7 @@
 package com.tracepilot.investigation.agent;
 
 import com.tracepilot.investigation.domain.InvestigationBudget;
+import com.tracepilot.rag.search.RunbookSearchService;
 import com.tracepilot.tools.common.InvestigationToolExecutor;
 import com.tracepilot.tools.logs.SearchLogsTool;
 import com.tracepilot.tools.service.GetServiceInfoTool;
@@ -20,19 +21,20 @@ import static org.mockito.Mockito.*;
 class InvestigationToolCallbackFactoryTest {
 
     @Test
-    void registersExactlyFourReadOnlyTools() {
+    void registersExactlyFiveReadOnlyTools() {
         var factory = new InvestigationToolCallbackFactory(
                 new InvestigationToolExecutor(),
                 mock(SearchLogsTool.class),
                 mock(GetServiceInfoTool.class),
                 mock(GetRecentDeploymentsTool.class),
-                mock(GetIncidentHistoryTool.class)
+                mock(GetIncidentHistoryTool.class),
+                mock(RunbookSearchService.class)
         );
 
         var callbacks = factory.create(
                 "INC-PAY-001",
                 new InvestigationBudget(
-                        5, Duration.ofMinutes(1)
+                        8, Duration.ofMinutes(1)
                 )
         );
 
@@ -46,9 +48,10 @@ class InvestigationToolCallbackFactoryTest {
                 "searchLogs",
                 "getServiceInfo",
                 "getRecentDeployments",
-                "getIncidentHistory"
+                "getIncidentHistory",
+                "searchRunbooks"
         ), names);
 
-        assertEquals(4, callbacks.size());
+        assertEquals(5, callbacks.size());
     }
 }
