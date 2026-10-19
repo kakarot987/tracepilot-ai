@@ -26,3 +26,7 @@ Thumbs.db
 # Benchmark output
 gpu-benchmark.csv
 milestone-1-benchmark.csv
+
+# Local database backups
+*.dump
+*.backup
