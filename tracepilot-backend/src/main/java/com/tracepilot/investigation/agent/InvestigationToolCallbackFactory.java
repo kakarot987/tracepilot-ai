@@ -11,6 +11,7 @@ import com.tracepilot.tools.history.GetIncidentHistoryTool;
 import com.tracepilot.investigation.domain.EvidenceType;
 import org.springframework.ai.support.ToolCallbacks;
 import org.springframework.ai.tool.ToolCallback;
+import org.springframework.context.annotation.Profile;
 import org.springframework.stereotype.Component;
 import com.tracepilot.rag.search.RunbookSearchService;
 
@@ -19,6 +20,7 @@ import java.util.List;
 import java.util.function.BiConsumer;
 
 @Component
+@Profile("postgres")
 public class InvestigationToolCallbackFactory {
 
     private final InvestigationToolExecutor executor;

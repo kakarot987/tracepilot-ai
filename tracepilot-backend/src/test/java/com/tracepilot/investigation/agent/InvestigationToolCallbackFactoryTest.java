@@ -21,7 +21,7 @@ import static org.mockito.Mockito.*;
 class InvestigationToolCallbackFactoryTest {
 
     @Test
-    void registersExactlyFourReadOnlyTools() {
+    void registersExactlyFiveReadOnlyTools() {
         var factory = new InvestigationToolCallbackFactory(
                 new InvestigationToolExecutor(),
                 mock(SearchLogsTool.class),
@@ -34,7 +34,7 @@ class InvestigationToolCallbackFactoryTest {
         var callbacks = factory.create(
                 "INC-PAY-001",
                 new InvestigationBudget(
-                        5, Duration.ofMinutes(1)
+                        8, Duration.ofMinutes(1)
                 )
         );
 
@@ -48,9 +48,10 @@ class InvestigationToolCallbackFactoryTest {
                 "searchLogs",
                 "getServiceInfo",
                 "getRecentDeployments",
-                "getIncidentHistory"
+                "getIncidentHistory",
+                "searchRunbooks"
         ), names);
 
-        assertEquals(4, callbacks.size());
+        assertEquals(5, callbacks.size());
     }
 }
