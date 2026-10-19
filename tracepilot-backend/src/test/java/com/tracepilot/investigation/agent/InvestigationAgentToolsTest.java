@@ -5,6 +5,7 @@ import com.tracepilot.investigation.domain.InvestigationBudget;
 import com.tracepilot.investigation.domain.InvestigationLimitExceededException;
 import com.tracepilot.tools.common.InvestigationToolExecutor;
 import com.tracepilot.tools.common.ToolResult;
+import com.tracepilot.tools.common.ToolStatus;
 import com.tracepilot.tools.logs.SearchLogsRequest;
 import com.tracepilot.tools.logs.SearchLogsTool;
 import com.tracepilot.tools.service.GetServiceInfoTool;
@@ -176,6 +177,35 @@ class InvestigationAgentToolsTest {
                 List.of("LOG:LOG-PAY-001"),
                 recorded
         );
+    }
+
+    @Test
+    void rejectsMalformedDeploymentTimestamp() {
+
+        var adapter = new InvestigationAgentTools(
+                "INC-PAY-001",
+                new InvestigationBudget(
+                        3, Duration.ofMinutes(1)
+                ),
+                executor,
+                logs,
+                services,
+                deployments,
+                history
+        );
+
+        var result = adapter.getRecentDeployments(
+                "invalid-timestamp",
+                "2026-10-01T10:00:00Z",
+                10
+        );
+
+        assertEquals(
+                ToolStatus.INVALID_ARGUMENTS,
+                result.status()
+        );
+
+        verifyNoInteractions(deployments);
     }
 
 }

@@ -146,8 +146,8 @@ public final class InvestigationAgentTools {
                         deployments.get(
                                 new GetRecentDeploymentsRequest(
                                         incidentId,
-                                        Instant.parse(from),
-                                        Instant.parse(to),
+                                        parseTimestamp(from),
+                                        parseTimestamp(to),
                                         limit
                                 )
                         )
