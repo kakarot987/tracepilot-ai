@@ -336,6 +336,23 @@ public class WorkflowPersistenceService {
         );
     }
 
+    @Transactional
+    public boolean reserveFollowUp(UUID workflowId) {
+        int changed = jdbc.sql("""
+        UPDATE workflow_runs
+        SET follow_ups_used = follow_ups_used + 1,
+            version = version + 1
+        WHERE id = :id
+          AND status = 'RUNNING'
+          AND active_agent_role IS NULL
+          AND follow_ups_used < 1
+        """)
+                .param("id", workflowId)
+                .update();
+
+        return changed == 1;
+    }
+
     private WorkflowStepRecord mapStep(
             java.sql.ResultSet rs)
             throws java.sql.SQLException {
