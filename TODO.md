@@ -75,6 +75,8 @@
 
 **Exit criteria:** The agent retrieves real synthetic evidence with Java tool calls and handles failure safely.
 
+Note: TracePilot validates that an investigation's cited evidence identifiers were recorded during its tool execution. This prevents acceptance of missing or unrecognized citations. It does not establish that every factual claim is logically supported by the cited evidence. Semantic claim verification is deferred to the Milestone 4 Reviewer Agent.
+
 ## Milestone 3 — RAG and citations (Week 3)
 
 - [ ] Create 8–12 realistic, synthetic runbooks and postmortems under `simulator/runbooks/`.

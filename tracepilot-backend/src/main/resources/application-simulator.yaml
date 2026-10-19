@@ -1,0 +1,8 @@
+
+spring:
+  autoconfigure:
+    exclude:
+      - org.springframework.boot.jdbc.autoconfigure.DataSourceAutoConfiguration
+
+  flyway:
+    enabled: false
