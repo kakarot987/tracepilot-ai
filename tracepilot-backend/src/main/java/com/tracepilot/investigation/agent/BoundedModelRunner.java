@@ -8,7 +8,7 @@ import org.springframework.ai.chat.model.ChatModel;
 import org.springframework.ai.chat.prompt.Prompt;
 import org.springframework.ai.chat.messages.SystemMessage;
 import org.springframework.ai.chat.messages.UserMessage;
-import org.springframework.ai.model.tool.ToolCallingChatOptions;
+import org.springframework.ai.ollama.api.OllamaChatOptions;
 import org.springframework.ai.model.tool.ToolCallingManager;
 import org.springframework.ai.tool.ToolCallback;
 
@@ -44,7 +44,9 @@ public class BoundedModelRunner {
         Objects.requireNonNull(callbacks);
         Objects.requireNonNull(budget);
 
-        var options = ToolCallingChatOptions.builder()
+        var options = OllamaChatOptions.builder()
+                .model("qwen3:4b")
+                .temperature(0.2)
                 .toolCallbacks(callbacks)
                 .build();
 
