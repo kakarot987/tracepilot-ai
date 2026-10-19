@@ -81,17 +81,19 @@ Note: TracePilot validates that an investigation's cited evidence identifiers we
 
 ## Milestone 3 — RAG and citations (Week 3)
 
-- [ ] Create 8–12 realistic, synthetic runbooks and postmortems under `simulator/runbooks/`.
-- [ ] Set up `pgvector` in PostgreSQL.
-- [ ] Try a local embedding model (for example, `embeddinggemma`), checking its resource usage separately from the chat model.
-- [ ] Build a repeatable indexing pipeline with document IDs, chunk IDs, source names, and versions.
-- [ ] Implement semantic retrieval with top-k limits and optional metadata filters.
-- [ ] Display cited document titles/passages in generated answers.
-- [ ] Make the model distinguish **retrieved facts**, **hypotheses**, and **missing evidence**.
-- [ ] Test irrelevant retrieval, conflicting documents, empty search results, and prompt-injection text embedded in documents.
-- [ ] Record retrieval quality on a small hand-labeled question set.
+- [x] Create 8–12 realistic, synthetic runbooks and postmortems under `simulator/runbooks/`.
+- [x] Set up `pgvector` in PostgreSQL.
+- [x] Integrate local `embeddinggemma` embeddings alongside the chat model; keep separate RAM/VRAM measurement as an optional benchmark follow-up.
+- [x] Build a repeatable indexing pipeline with document IDs, chunk IDs, source names, and versions.
+- [x] Implement semantic retrieval with top-k limits and optional metadata filters.
+- [x] Return runbook titles, passages and stable chunk IDs to the Investigator Agent for citation in investigation drafts (UI display is planned for Milestone 5).
+- [x] Make the model distinguish **retrieved facts**, **hypotheses**, and **missing evidence**.
+- [x] Test irrelevant retrieval, conflicting documents, empty search results, and prompt-injection text embedded in documents.
+- [x] Record retrieval quality on a small hand-labeled question set.
 
-**Exit criteria:** Investigations cite relevant runbooks and decline to claim support when none exists.
+**Status (2026-10-19): COMPLETE — merged into `main`.** Source review confirmed ten synthetic runbooks/postmortems, pgvector migrations, local EmbeddingGemma indexing, version-aware document/chunk metadata, bounded semantic search, agent tool integration, citation-ID validation, and adversarial/retrieval tests. The committed [retrieval evaluation](evaluations/milestone-3-results.md) reports Recall@3 = 1.000, Recall@5 = 1.000, and MRR@5 = 0.833 over ten labeled queries; these are developer-reported results, not independently executed in this review. The separate Docker indexer and model-resource benchmarking remain useful reproducibility checks.
+
+**Exit criteria:** Met for the Milestone 3 source-reviewed scope: investigations can retrieve runbook passages with stable citations and identify missing support. Citation validation checks recorded IDs, not the semantic truth of claims; the Reviewer Agent is planned for Milestone 4.
 
 ## Milestone 4 — Controlled multi-agent orchestration (Week 4)
 
@@ -175,7 +177,8 @@ Note: TracePilot validates that an investigation's cited evidence identifiers we
 | 2026-10-16 | 1 | Reviewed `feature/milestone-1`; exception classification, retries, typed API, tests and Docker integration present; developer confirmed verification checks passed | Merge before Milestone 2; optional numeric RAM/VRAM documentation |
 | 2026-10-16 | 0–1 | Re-audited Milestone 0: README, ignore file, Maven and scope confirmed. Developer confirms RAM/VRAM verification; no values published | Add license and optional GitHub milestone issues |
 | 2026-10-19 | 2 | `feature/milestone-2` merged into `main`; source review complete and Maven/PostgreSQL/live Ollama checks confirmed by developer | Begin Milestone 3 RAG and pgvector; license and issue housekeeping remain |
+| 2026-10-19 | 3 | `feature/milestone-3` merged into `main`; runbook RAG, pgvector, embedding versioning, agent citations, and retrieval evaluation recorded | Begin Milestone 4 controlled multi-agent orchestration |
 
 ---
 
-**Current next action:** Begin Milestone 3 on a new feature branch: synthetic runbooks and postmortems, pgvector, local embeddings, indexing and evidence-linked retrieval. Milestone 0 housekeeping (license and GitHub milestone Issues) remains open; optional RAM/VRAM benchmark documentation may follow. See [ChatGPT collaboration workflow](docs/CHATGPT_COLLABORATION.md). Keep the scope focused on an evidence-backed incident investigator, not an unrestricted autonomous production agent.
+**Current next action:** Create `feature/milestone-4` and implement controlled Triage → Investigator → Root Cause → Reviewer orchestration with typed shared state, evidence-linked hypotheses, bounded follow-up, persisted execution traces, and one shared local model. Preserve read-only tools and cooperative timeout semantics. Milestone 0 license/GitHub Issues and optional hardware benchmark documentation remain housekeeping items. See [ChatGPT collaboration workflow](docs/CHATGPT_COLLABORATION.md).
