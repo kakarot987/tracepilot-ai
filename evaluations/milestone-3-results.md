@@ -9,21 +9,21 @@
 
 | Metric | Target | Measured |
 |---|---:|---:|
-| Recall@3 | ≥ 70% | Pending |
-| Recall@5 | ≥ 90% | Pending |
-| MRR@5 | Record baseline | Pending |
+| Recall@3 | ≥ 70% | 1.000 |
+| Recall@5 | ≥ 90% | 1.000 |
+| MRR@5 | Record baseline | =0.833 |
 
 ## Safety and correctness
 
-| Test | Result |
-|---|---|
-| Valid persisted citations accepted | Pending |
-| Fabricated runbook citations rejected | Pending |
-| Mixed valid/invalid citations rejected | Pending |
-| Empty retrieval handled | Pending |
-| Conflicting historical documents handled | Pending |
-| Prompt-injection behavioral evaluation | Pending |
-| Existing Milestone 2 regression tests | Pending |
+| Test | Result  |
+|---|---------|
+| Valid persisted citations accepted | Passed  |
+| Fabricated runbook citations rejected | Passed |
+| Mixed valid/invalid citations rejected | Passed |
+| Empty retrieval handled | Passed |
+| Conflicting historical documents handled | Passed |
+| Prompt-injection behavioral evaluation | Passed |
+| Existing Milestone 2 regression tests | Passed |
 
 ## Known limitations
 
