@@ -13,7 +13,8 @@ import org.springframework.context.annotation.Profile;
 import org.springframework.stereotype.Service;
 import com.tracepilot.investigation.service.InvestigationConflictException;
 import java.util.UUID;
-
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import java.time.Duration;
 import java.util.List;
 import java.util.Objects;
@@ -31,7 +32,8 @@ public class InvestigationAgent {
     private final InvestigationService investigations;
     private final InvestigationToolCallbackFactory tools;
     private final EvidenceCitationValidator citationValidator;
-
+    private static final Logger log =
+            LoggerFactory.getLogger(InvestigationAgent.class);
 
     public InvestigationAgent(
             BoundedModelRunner modelRunner,
@@ -182,7 +184,14 @@ public class InvestigationAgent {
                                     .InvestigationLimitExceededException
                             ? InvestigationStatus.INSUFFICIENT_EVIDENCE
                             : InvestigationStatus.FAILED;
+            log.error(
+                    "Investigation failed; runId={}, incidentId={}, exceptionType={}",
+                    run.id(),
+                    incident.id(),
+                    ex.getClass().getName()
+            );
 
+            log.debug("Investigation failure stack trace", ex);
             // Do not expose provider errors, stack traces,
             // secrets or unvalidated model responses.
             return finalizeRun(

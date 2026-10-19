@@ -12,14 +12,14 @@ spring:
         options:
           temperature: 0.2
           num-ctx: 4096
-          num-predict: 1024
+          num-predict: 256
       init:
         pull-model-strategy: never
 
   http:
     clients:
       connect-timeout: 5s
-      read-timeout: 45s
+      read-timeout: 90s
 
   profiles:
     default: simulator
