@@ -17,8 +17,12 @@ public class RunbookSearchService {
 
     private final EmbeddingModel embeddings;
     private final JdbcClient jdbc;
+
     @Value("${tracepilot.rag.min-similarity:0.0}")
     private double minSimilarity;
+    @Value("${tracepilot.rag.embedding-model-id:embeddinggemma-local-v1}")
+    private String embeddingModelId;
+
     public RunbookSearchService(
             EmbeddingModel embeddings,
             JdbcClient jdbc) {
@@ -72,6 +76,7 @@ public class RunbookSearchService {
                   AND 1 - (
                          c.embedding <=> CAST(:embedding AS vector)
                     ) >= :minSimilarity
+                  AND d.embedding_model = :embeddingModel
                 ORDER BY
                     c.embedding <=> CAST(:embedding AS vector),
                     c.chunk_id
@@ -82,6 +87,7 @@ public class RunbookSearchService {
                 .param("documentType", request.documentType())
                 .param("limit", request.limit())
                 .param("minSimilarity", minSimilarity)
+                .param("embeddingModel", embeddingModelId)
                 .query((rs, rowNum) ->
                         new RunbookSearchResult(
                                 rs.getString("chunk_id"),

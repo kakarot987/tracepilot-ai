@@ -37,6 +37,7 @@ tracepilot:
     request-deadline: 100s
   rag:
     min-similarity: 0.0
+    embedding-model-id: ${RAG_EMBEDDING_MODEL_ID:embeddinggemma-local-v1}
 
 server:
   port: 8080

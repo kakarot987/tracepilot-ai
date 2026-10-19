@@ -6,6 +6,7 @@ import org.springframework.context.annotation.Profile;
 import org.springframework.jdbc.core.simple.JdbcClient;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
+import org.springframework.beans.factory.annotation.Value;
 
 import java.nio.file.Path;
 import java.util.List;
@@ -20,6 +21,9 @@ public class RunbookIndexer {
     private final RunbookParser parser;
     private final EmbeddingModel embeddings;
     private final JdbcClient jdbc;
+
+    @Value("${tracepilot.rag.embedding-model-id:embeddinggemma-local-v1}")
+    private String embeddingModelId;
 
     public RunbookIndexer(
             RunbookParser parser,
@@ -36,22 +40,30 @@ public class RunbookIndexer {
 
         var document = parser.parse(path);
 
-        String existingHash = jdbc.sql("""
-                SELECT content_hash
-                FROM rag_documents
-                WHERE document_id = :id
-                """)
+        var existing = jdbc.sql("""
+        SELECT content_hash, embedding_model
+        FROM rag_documents
+        WHERE document_id = :id
+        """)
                 .param("id", document.documentId())
-                .query(String.class)
-                .optional()
-                .orElse(null);
+                .query((rs, rowNum) -> new ExistingIndex(
+                        rs.getString("content_hash"),
+                        rs.getString("embedding_model")
+                ))
+                .optional();
 
-        // Repeat ingestion without creating new embeddings.
-        if (document.contentHash().equals(existingHash)) {
+        boolean unchanged = existing
+                .map(index ->
+                        document.contentHash().equals(index.contentHash())
+                                && embeddingModelId.equals(index.embeddingModel()))
+                .orElse(false);
+
+        if (unchanged) {
             return new IndexResult(
                     document.documentId(), 0, true
             );
         }
+
         List<String> chunks =
                 parser.chunk(document.content());
 
@@ -80,22 +92,24 @@ public class RunbookIndexer {
         }
 
         jdbc.sql("""
-                INSERT INTO rag_documents
-                    (document_id, title, document_type,
-                     service_name, version, source_path,
-                     content_hash)
-                VALUES
-                    (:id, :title, :type, :service,
-                     :version, :path, :hash)
-                ON CONFLICT (document_id)
-                DO UPDATE SET
-                    title = EXCLUDED.title,
-                    document_type = EXCLUDED.document_type,
-                    service_name = EXCLUDED.service_name,
-                    version = EXCLUDED.version,
-                    source_path = EXCLUDED.source_path,
-                    content_hash = EXCLUDED.content_hash,
-                    indexed_at = clock_timestamp()
+                        INSERT INTO rag_documents
+                            (document_id, title, document_type,
+                             service_name, version, source_path,
+                             content_hash, embedding_model)
+                        VALUES
+                            (:id, :title, :type,
+                             :service, :version, :path,
+                             :hash, :embeddingModel)
+                        ON CONFLICT (document_id)
+                        DO UPDATE SET
+                            title = EXCLUDED.title,
+                            document_type = EXCLUDED.document_type,
+                            service_name = EXCLUDED.service_name,
+                            version = EXCLUDED.version,
+                            source_path = EXCLUDED.source_path,
+                            content_hash = EXCLUDED.content_hash,
+                            embedding_model = EXCLUDED.embedding_model,
+                            indexed_at = clock_timestamp()
                 """)
                 .param("id", document.documentId())
                 .param("title", document.title())
@@ -104,6 +118,7 @@ public class RunbookIndexer {
                 .param("version", document.version())
                 .param("path", path.getFileName().toString())
                 .param("hash", document.contentHash())
+                .param("embeddingModel", embeddingModelId)
                 .update();
 
         jdbc.sql("""
@@ -167,5 +182,10 @@ public class RunbookIndexer {
             String documentId,
             int chunksIndexed,
             boolean unchanged
+    ) {}
+
+    private record ExistingIndex(
+            String contentHash,
+            String embeddingModel
     ) {}
 }
