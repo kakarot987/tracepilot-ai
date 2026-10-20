@@ -27,7 +27,10 @@ public record EvidenceExcerpt(
     }
 
     public boolean isHistorical() {
-        return evidenceType.equals("RUNBOOK_CHUNK")
-                || evidenceType.equals("POSTMORTEM_CHUNK");
+        return switch (evidenceType) {
+            case "RUNBOOK_CHUNK", "POSTMORTEM_CHUNK",
+                 "INCIDENT_HISTORY" -> true;
+            default -> false;
+        };
     }
 }

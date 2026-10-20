@@ -226,4 +226,96 @@ class JdbcReviewEvidenceProviderIntegrationTest {
                 )
         );
     }
+
+    @Test
+    void loadsRecordedDeploymentForSameService() {
+        investigations.recordEvidence(
+                investigationId,
+                "DEP-PAY-001",
+                EvidenceType.DEPLOYMENT
+        );
+
+        investigations.finish(
+                investigationId,
+                InvestigationStatus.COMPLETED,
+                null
+        );
+
+        var excerpts = provider.load(
+                investigationId,
+                List.of("DEP-PAY-001")
+        );
+
+        assertEquals(1, excerpts.size());
+        assertEquals("DEPLOYMENT",
+                excerpts.get(0).evidenceType());
+        assertTrue(excerpts.get(0).content().contains("1.8.2"));
+    }
+
+    @Test
+    void rejectsDeploymentFromAnotherService() {
+        investigations.recordEvidence(
+                investigationId,
+                "DEP-DB-001",
+                EvidenceType.DEPLOYMENT
+        );
+
+        investigations.finish(
+                investigationId,
+                InvestigationStatus.COMPLETED,
+                null
+        );
+
+        assertTrue(provider.load(
+                investigationId,
+                List.of("DEP-DB-001")
+        ).isEmpty());
+    }
+
+    @Test
+    void loadsRecordedServiceInfo() {
+        investigations.recordEvidence(
+                investigationId,
+                "SVC-payment-service",
+                EvidenceType.SERVICE_INFO
+        );
+
+        investigations.finish(
+                investigationId,
+                InvestigationStatus.COMPLETED,
+                null
+        );
+
+        var excerpts = provider.load(
+                investigationId,
+                List.of("SVC-payment-service")
+        );
+
+        assertEquals(1, excerpts.size());
+        assertEquals("SERVICE_INFO",
+                excerpts.get(0).evidenceType());
+        assertTrue(excerpts.get(0).content()
+                .contains("payment-service"));
+    }
+
+    @Test
+    void rejectsWrongServiceInfoId() {
+        investigations.recordEvidence(
+                investigationId,
+                "SVC-order-service",
+                EvidenceType.SERVICE_INFO
+        );
+
+        investigations.finish(
+                investigationId,
+                InvestigationStatus.COMPLETED,
+                null
+        );
+
+        assertTrue(provider.load(
+                investigationId,
+                List.of("SVC-order-service")
+        ).isEmpty());
+    }
+
 }
