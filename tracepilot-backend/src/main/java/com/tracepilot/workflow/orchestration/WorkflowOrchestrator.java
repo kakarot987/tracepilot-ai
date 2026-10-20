@@ -5,6 +5,7 @@ import com.tracepilot.investigation.domain.InvestigationStatus;
 import com.tracepilot.workflow.domain.WorkflowStatus;
 import com.tracepilot.workflow.investigator.InvestigatorStepResult;
 import com.tracepilot.workflow.investigator.InvestigatorWorkflowService;
+import com.tracepilot.workflow.persistence.WorkflowLimits;
 import com.tracepilot.workflow.persistence.WorkflowPersistenceService;
 import com.tracepilot.workflow.reviewer.*;
 import com.tracepilot.workflow.rootcause.*;
@@ -27,7 +28,7 @@ public class WorkflowOrchestrator {
 
     private static final int MAX_FOLLOW_UPS = 1;
     private static final Duration WORKFLOW_DEADLINE =
-            Duration.ofMinutes(4);
+            WorkflowLimits.MAX_DURATION;
 
     private final WorkflowPersistenceService workflows;
     private final TriageWorkflowService triage;

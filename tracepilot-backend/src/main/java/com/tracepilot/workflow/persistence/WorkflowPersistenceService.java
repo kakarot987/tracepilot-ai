@@ -24,7 +24,8 @@ import java.time.ZoneOffset;
 @Profile("postgres")
 public class WorkflowPersistenceService {
 
-    private static final int MAX_STEPS = 8;
+    private static final int MAX_STEPS =
+            WorkflowLimits.MAX_STEPS;
 
     private final JdbcClient jdbc;
 
@@ -85,6 +86,8 @@ public class WorkflowPersistenceService {
             throw new IllegalStateException(
                     "Workflow is terminal");
         }
+
+        requireBeforeDeadline(run);
 
         if (run.stepsUsed() >= MAX_STEPS) {
             throw new IllegalStateException(
@@ -183,6 +186,10 @@ public class WorkflowPersistenceService {
                     "Workflow is already terminal");
         }
 
+        if (desired == WorkflowStepStatus.COMPLETED) {
+            requireBeforeDeadline(run);
+        }
+
         WorkflowStepRecord step = jdbc.sql("""
                         SELECT *
                         FROM workflow_steps
@@ -262,6 +269,10 @@ public class WorkflowPersistenceService {
                 || run.currentRole() != null) {
             throw new IllegalStateException(
                     "Workflow cannot be finalized");
+        }
+
+        if (status == WorkflowStatus.COMPLETED) {
+            requireBeforeDeadline(run);
         }
 
         jdbc.sql("""
@@ -352,6 +363,8 @@ public class WorkflowPersistenceService {
           AND status = 'RUNNING'
           AND active_agent_role IS NULL
           AND follow_ups_used < 1
+          AND started_at >
+              clock_timestamp() - INTERVAL '4 minutes'
         """)
                 .param("id", workflowId)
                 .update();
@@ -421,6 +434,8 @@ public class WorkflowPersistenceService {
             throw new IllegalStateException(
                     "Step cannot be completed with output");
         }
+
+        requireBeforeDeadline(run);
 
         if (investigationRunId != null) {
             if (expectedRole != AgentRole.INVESTIGATOR) {
@@ -570,6 +585,73 @@ public class WorkflowPersistenceService {
                 .optional();
     }
 
+    @Transactional
+    public int recoverExpiredWorkflows() {
+
+        Instant cutoff = Instant.now()
+                .minus(WorkflowLimits.MAX_DURATION);
+
+        // Lock expired workflows, but do not wait on
+        // a workflow currently held by another transaction.
+        List<UUID> expiredIds = jdbc.sql("""
+            SELECT id
+            FROM workflow_runs
+            WHERE status IN ('PENDING', 'RUNNING')
+              AND started_at <= :cutoff
+            ORDER BY started_at, id
+            LIMIT 50
+            FOR UPDATE SKIP LOCKED
+            """)
+                .param("cutoff", toDatabaseTime(cutoff))
+                .query(UUID.class)
+                .list();
+
+        for (UUID workflowId : expiredIds) {
+
+            // Close any step abandoned while RUNNING.
+            jdbc.sql("""
+                UPDATE workflow_steps
+                SET status = 'TIMED_OUT',
+                    completed_at = GREATEST(
+                        clock_timestamp(), started_at),
+                    duration_ms = GREATEST(
+                        0,
+                        (
+                            EXTRACT(EPOCH FROM
+                                (clock_timestamp() - started_at))
+                            * 1000
+                        )::bigint
+                    ),
+                    error_code = 'WORKFLOW_DEADLINE_EXCEEDED'
+                WHERE workflow_id = :workflowId
+                  AND status = 'RUNNING'
+                """)
+                    .param("workflowId", workflowId)
+                    .update();
+
+            int changed = jdbc.sql("""
+                UPDATE workflow_runs
+                SET status = 'TIMED_OUT',
+                    active_agent_role = NULL,
+                    completed_at = GREATEST(
+                        clock_timestamp(), started_at),
+                    failure_reason = 'Workflow deadline exceeded',
+                    version = version + 1
+                WHERE id = :workflowId
+                  AND status IN ('PENDING', 'RUNNING')
+                """)
+                    .param("workflowId", workflowId)
+                    .update();
+
+            if (changed != 1) {
+                throw new IllegalStateException(
+                        "Expired workflow transition failed");
+            }
+        }
+
+        return expiredIds.size();
+    }
+
     private WorkflowStepRecord mapStep(
             java.sql.ResultSet rs)
             throws java.sql.SQLException {
@@ -613,4 +695,17 @@ public class WorkflowPersistenceService {
     private OffsetDateTime toDatabaseTime(Instant instant) {
         return instant.atOffset(ZoneOffset.UTC);
     }
+
+
+    private void requireBeforeDeadline(WorkflowRunRecord run) {
+
+        Instant deadline = run.startedAt()
+                .plus(WorkflowLimits.MAX_DURATION);
+
+        if (!Instant.now().isBefore(deadline)) {
+            throw new IllegalStateException(
+                    "Workflow deadline exceeded");
+        }
+    }
+
 }
