@@ -124,8 +124,13 @@ class ReviewerWorkflowServiceTest {
         verify(workflows).beginStep(
                 workflowId, AgentRole.REVIEWER);
 
-        verify(workflows).completeStep(
-                eq(stepId), contains("ACCEPT"));
+        verify(workflows).completeStepWithOutput(
+                eq(stepId),
+                eq(AgentRole.REVIEWER),
+                contains("ACCEPT"),
+                any(ReviewerResult.class),
+                isNull()
+        );
 
         verify(workflows, never()).finishWorkflow(
                 any(), any());
@@ -157,8 +162,13 @@ class ReviewerWorkflowServiceTest {
         assertEquals(ReviewDecision.FOLLOW_UP,
                 actual.decision());
 
-        verify(workflows).completeStep(
-                eq(stepId), contains("FOLLOW_UP"));
+        verify(workflows).completeStepWithOutput(
+                eq(stepId),
+                eq(AgentRole.REVIEWER),
+                contains("FOLLOW_UP"),
+                any(ReviewerResult.class),
+                isNull()
+        );
 
         verify(workflows, never()).finishWorkflow(
                 any(), any());

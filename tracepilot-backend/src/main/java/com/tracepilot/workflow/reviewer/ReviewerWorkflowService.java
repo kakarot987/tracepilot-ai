@@ -55,7 +55,13 @@ public class ReviewerWorkflowService {
                     result.unresolvedQuestions().size()
             );
 
-            workflows.completeStep(step.id(), summary);
+            workflows.completeStepWithOutput(
+                    step.id(),
+                    AgentRole.REVIEWER,
+                    summary,
+                    result,
+                    null
+            );
 
             // Do not finalize here.
             // Step 7 orchestrator owns the final transition.

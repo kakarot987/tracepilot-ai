@@ -77,15 +77,23 @@ public class InvestigatorWorkflowService {
                             result.toolCallsUsed()
                     ).trim();
 
-                    workflows.completeStep(step.id(), summary);
+                    workflows.completeStepWithOutput(
+                            step.id(),
+                            AgentRole.INVESTIGATOR,
+                            summary,
+                            result,
+                            result.investigationRunId()
+                    );
                 }
 
                 case INSUFFICIENT_EVIDENCE -> {
-                    workflows.completeStep(
+                    workflows.completeStepWithOutput(
                             step.id(),
+                            AgentRole.INVESTIGATOR,
                             "Insufficient evidence; runId=%s"
-                                    .formatted(
-                                            result.investigationRunId())
+                                    .formatted(result.investigationRunId()),
+                            result,
+                            result.investigationRunId()
                     );
                     // Leave the workflow RUNNING.
                     // Orchestrator decides the next transition.

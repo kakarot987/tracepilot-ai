@@ -53,7 +53,13 @@ public class TriageWorkflowService {
                                     result.investigationFocus()
                             );
 
-            workflows.completeStep(step.id(), summary);
+            workflows.completeStepWithOutput(
+                    step.id(),
+                    AgentRole.TRIAGE,
+                    summary,
+                    result,
+                    null
+            );
 
             return result;
 

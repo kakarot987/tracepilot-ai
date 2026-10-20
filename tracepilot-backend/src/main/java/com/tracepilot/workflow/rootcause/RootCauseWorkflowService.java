@@ -57,7 +57,13 @@ public class RootCauseWorkflowService {
                     result.openQuestions().size()
             );
 
-            workflows.completeStep(step.id(), summary);
+            workflows.completeStepWithOutput(
+                    step.id(),
+                    AgentRole.ROOT_CAUSE,
+                    summary,
+                    result,
+                    null
+            );
             return result;
 
         } catch (RuntimeException ex) {

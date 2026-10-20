@@ -4,6 +4,9 @@ package com.tracepilot.workflow.persistence;
 import com.tracepilot.workflow.domain.AgentRole;
 import com.tracepilot.workflow.domain.WorkflowStatus;
 import com.tracepilot.workflow.domain.WorkflowStepStatus;
+import com.tracepilot.workflow.domain.AgentRole;
+import tools.jackson.databind.json.JsonMapper;
+import org.springframework.dao.EmptyResultDataAccessException;
 
 import org.springframework.context.annotation.Profile;
 import org.springframework.jdbc.core.simple.JdbcClient;
@@ -25,8 +28,11 @@ public class WorkflowPersistenceService {
 
     private final JdbcClient jdbc;
 
-    public WorkflowPersistenceService(JdbcClient jdbc) {
+    private final JsonMapper jsonMapper;
+
+    public WorkflowPersistenceService(JdbcClient jdbc, JsonMapper jsonMapper) {
         this.jdbc = jdbc;
+        this.jsonMapper = jsonMapper;
     }
 
     @Transactional
@@ -351,6 +357,217 @@ public class WorkflowPersistenceService {
                 .update();
 
         return changed == 1;
+    }
+
+    @Transactional
+    public void completeStepWithOutput(
+            UUID stepId,
+            AgentRole expectedRole,
+            String summary,
+            Object output,
+            UUID investigationRunId) {
+
+        if (stepId == null || expectedRole == null
+                || output == null) {
+            throw new IllegalArgumentException(
+                    "Step, role and output are required");
+        }
+
+        String json = jsonMapper.writeValueAsString(output);
+
+        if (json.isBlank() || json.length() > 16000) {
+            throw new IllegalArgumentException(
+                    "Step output exceeds bounds");
+        }
+
+        // Lock ordering matches finishStep():
+        // workflow first, then step.
+        UUID workflowId = jdbc.sql("""
+            SELECT workflow_id
+            FROM workflow_steps
+            WHERE id = :stepId
+            """)
+                .param("stepId", stepId)
+                .query(UUID.class)
+                .optional()
+                .orElseThrow(() ->
+                        new IllegalArgumentException("Unknown step"));
+
+        var run = jdbc.sql("""
+            SELECT *
+            FROM workflow_runs
+            WHERE id = :workflowId
+            FOR UPDATE
+            """)
+                .param("workflowId", workflowId)
+                .query((rs, row) -> mapRun(rs))
+                .single();
+
+        var step = jdbc.sql("""
+            SELECT *
+            FROM workflow_steps
+            WHERE id = :stepId
+            FOR UPDATE
+            """)
+                .param("stepId", stepId)
+                .query((rs, row) -> mapStep(rs))
+                .single();
+
+        if (run.status().isTerminal()
+                || run.currentRole() != expectedRole
+                || step.agentRole() != expectedRole
+                || step.status() != WorkflowStepStatus.RUNNING
+                || run.stepsUsed() != step.stepNumber()) {
+            throw new IllegalStateException(
+                    "Step cannot be completed with output");
+        }
+
+        if (investigationRunId != null) {
+            if (expectedRole != AgentRole.INVESTIGATOR) {
+                throw new IllegalArgumentException(
+                        "Only Investigator steps link child runs");
+            }
+
+            boolean belongsToIncident = jdbc.sql("""
+                SELECT COUNT(*)
+                FROM investigation_runs
+                WHERE id = :investigationId
+                  AND incident_id = :incidentId
+                """)
+                    .param("investigationId", investigationRunId)
+                    .param("incidentId", run.incidentId())
+                    .query(Long.class)
+                    .single() == 1L;
+
+            if (!belongsToIncident) {
+                throw new IllegalArgumentException(
+                        "Child investigation belongs to another incident");
+            }
+        }
+
+        if (expectedRole == AgentRole.INVESTIGATOR
+                && investigationRunId == null) {
+            throw new IllegalArgumentException(
+                    "Investigator child run ID is required");
+        }
+
+        Instant now = Instant.now();
+
+        long durationMs = Math.max(
+                0,
+                Duration.between(
+                        step.startedAt(), now).toMillis()
+        );
+
+        int changed = jdbc.sql("""
+            UPDATE workflow_steps
+            SET status = 'COMPLETED',
+                completed_at = :now,
+                duration_ms = :duration,
+                output_summary = :summary,
+                output_json = CAST(:json AS jsonb),
+                output_schema_version = 1,
+                investigation_run_id = :investigationId
+            WHERE id = :stepId
+              AND status = 'RUNNING'
+            """)
+                .param("now", toDatabaseTime(now))
+                .param("duration", durationMs)
+                .param("summary", truncate(summary, 2000))
+                .param("json", json)
+                .param("investigationId",
+                        investigationRunId,
+                        java.sql.Types.OTHER)
+                .param("stepId", stepId)
+                .update();
+
+        if (changed != 1) {
+            throw new IllegalStateException(
+                    "Step completion update failed");
+        }
+
+        int updated = jdbc.sql("""
+            UPDATE workflow_runs
+            SET active_agent_role = NULL,
+                version = version + 1
+            WHERE id = :workflowId
+            """)
+                .param("workflowId", workflowId)
+                .update();
+
+        if (updated != 1) {
+            throw new IllegalStateException(
+                    "Workflow transition failed");
+        }
+    }
+
+    @Transactional(readOnly = true)
+    public java.util.Optional<WorkflowStepOutput> output(
+            UUID stepId) {
+
+        return jdbc.sql("""
+            SELECT
+                id,
+                workflow_id,
+                agent_role,
+                output_schema_version,
+                output_json::text AS output_text,
+                investigation_run_id
+            FROM workflow_steps
+            WHERE id = :stepId
+              AND status = 'COMPLETED'
+              AND output_json IS NOT NULL
+            """)
+                .param("stepId", stepId)
+                .query((rs, row) -> new WorkflowStepOutput(
+                        rs.getObject("id", UUID.class),
+                        rs.getObject("workflow_id", UUID.class),
+                        AgentRole.valueOf(
+                                rs.getString("agent_role")),
+                        rs.getInt("output_schema_version"),
+                        rs.getString("output_text"),
+                        rs.getObject(
+                                "investigation_run_id",
+                                UUID.class)
+                ))
+                .optional();
+    }
+
+    @Transactional(readOnly = true)
+    public java.util.Optional<WorkflowStepOutput> latestOutput(
+            UUID workflowId,
+            AgentRole role) {
+
+        return jdbc.sql("""
+            SELECT
+                id,
+                workflow_id,
+                agent_role,
+                output_schema_version,
+                output_json::text AS output_text,
+                investigation_run_id
+            FROM workflow_steps
+            WHERE workflow_id = :workflowId
+              AND agent_role = :role
+              AND status = 'COMPLETED'
+              AND output_json IS NOT NULL
+            ORDER BY step_number DESC
+            LIMIT 1
+            """)
+                .param("workflowId", workflowId)
+                .param("role", role.name())
+                .query((rs, row) -> new WorkflowStepOutput(
+                        rs.getObject("id", UUID.class),
+                        rs.getObject("workflow_id", UUID.class),
+                        AgentRole.valueOf(
+                                rs.getString("agent_role")),
+                        rs.getInt("output_schema_version"),
+                        rs.getString("output_text"),
+                        rs.getObject(
+                                "investigation_run_id",
+                                UUID.class)
+                ))
+                .optional();
     }
 
     private WorkflowStepRecord mapStep(
