@@ -61,6 +61,7 @@ public class WorkflowOrchestrator {
         int followUps = 0;
         RootCauseResult analysis = null;
         ReviewerResult review = null;
+        FollowUpFocus nextFocus = null;
 
         try {
             checkDeadline(id);
@@ -76,7 +77,9 @@ public class WorkflowOrchestrator {
                 checkDeadline(id);
 
                 InvestigatorStepResult investigation =
-                        investigator.execute(id);
+                        nextFocus == null
+                                ? investigator.execute(id)
+                                : investigator.execute(id, nextFocus);
 
                 if (investigation.status()
                         != InvestigationStatus.COMPLETED) {
@@ -124,6 +127,13 @@ public class WorkflowOrchestrator {
                         investigation.investigationRunId(),
                         citedIds
                 );
+
+                // Missing sources cannot justify approval.
+                if (excerpts == null || excerpts.isEmpty()) {
+                    finishIfRunning(
+                            id, WorkflowStatus.INSUFFICIENT_EVIDENCE);
+                    return result(id, followUps, analysis, review);
+                }
                 var loadedIds = excerpts.stream()
                         .map(EvidenceExcerpt::evidenceId)
                         .collect(java.util.stream.Collectors.toSet());
@@ -132,12 +142,6 @@ public class WorkflowOrchestrator {
                     finishIfRunning(
                             id, WorkflowStatus.INSUFFICIENT_EVIDENCE);
 
-                    return result(id, followUps, analysis, review);
-                }
-                // Missing sources cannot justify approval.
-                if (excerpts == null || excerpts.isEmpty()) {
-                    finishIfRunning(
-                            id, WorkflowStatus.INSUFFICIENT_EVIDENCE);
                     return result(id, followUps, analysis, review);
                 }
 
@@ -158,20 +162,31 @@ public class WorkflowOrchestrator {
                                 || review.unresolvedQuestions().isEmpty()) {
                             workflows.finishWorkflow(
                                     id,
-                                    WorkflowStatus.INSUFFICIENT_EVIDENCE);
-                            return result(
-                                    id, followUps, analysis, review);
+                                    WorkflowStatus.INSUFFICIENT_EVIDENCE
+                            );
+                            return result(id, followUps, analysis, review);
                         }
 
-                        // Step 7 persistence enhancement will
-                        // reserve this allowance atomically.
+                        // Validate before reserving the allowance.
+                        FollowUpFocus focus = new FollowUpFocus(
+                                review.unresolvedQuestions()
+                        );
+
+                        checkDeadline(id);
+
+                        // Database enforces at most one follow-up.
                         if (!workflows.reserveFollowUp(id)) {
                             workflows.finishWorkflow(
-                                    id, WorkflowStatus.INSUFFICIENT_EVIDENCE);
+                                    id,
+                                    WorkflowStatus.INSUFFICIENT_EVIDENCE
+                            );
                             return result(id, followUps, analysis, review);
                         }
 
                         followUps = workflows.get(id).followUpsUsed();
+
+                        // Next loop iteration uses this focus.
+                        nextFocus = focus;
                     }
 
                     case INSUFFICIENT_EVIDENCE, REJECT -> {

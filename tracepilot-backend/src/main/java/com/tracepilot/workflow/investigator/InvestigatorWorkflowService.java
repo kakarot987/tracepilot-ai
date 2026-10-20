@@ -2,7 +2,7 @@
 package com.tracepilot.workflow.investigator;
 
 import com.tracepilot.investigation.agent.InvestigationAgent;
-import com.tracepilot.investigation.domain.InvestigationStatus;
+import com.tracepilot.workflow.orchestration.FollowUpFocus;
 import com.tracepilot.investigation.service.InvestigationService;
 import com.tracepilot.workflow.domain.AgentRole;
 import com.tracepilot.workflow.domain.WorkflowStatus;
@@ -33,6 +33,12 @@ public class InvestigatorWorkflowService {
     }
 
     public InvestigatorStepResult execute(UUID workflowId) {
+        return execute(workflowId, null);
+    }
+
+    public InvestigatorStepResult execute(
+            UUID workflowId,
+            FollowUpFocus focus) {
 
         var workflow = workflows.get(workflowId);
 
@@ -40,8 +46,9 @@ public class InvestigatorWorkflowService {
                 workflowId, AgentRole.INVESTIGATOR);
 
         try {
-            var execution = investigator.investigate(
-                    workflow.incidentId());
+            var execution = focus == null
+                    ? investigator.investigate(workflow.incidentId())
+                    : investigator.investigate(workflow.incidentId(), focus);
 
             var evidenceIds = investigations
                     .evidence(execution.runId())
