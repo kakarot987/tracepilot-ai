@@ -103,11 +103,37 @@ public class WorkflowOrchestrator {
 
                 // This provider must enforce investigation-scoped
                 // provenance and load actual source excerpts.
+                var citedIds = analysis.hypotheses().stream()
+                        .flatMap(h -> java.util.stream.Stream.concat(
+                                h.supportingEvidenceIds().stream(),
+                                h.contradictingEvidenceIds().stream()
+                        ))
+                        .distinct()
+                        .toList();
+
+                if (citedIds.isEmpty() || citedIds.size() > 12
+                        || !investigation.evidenceIds().containsAll(citedIds)) {
+
+                    finishIfRunning(
+                            id, WorkflowStatus.INSUFFICIENT_EVIDENCE);
+
+                    return result(id, followUps, analysis, review);
+                }
+
                 var excerpts = evidenceProvider.load(
                         investigation.investigationRunId(),
-                        investigation.evidenceIds()
+                        citedIds
                 );
+                var loadedIds = excerpts.stream()
+                        .map(EvidenceExcerpt::evidenceId)
+                        .collect(java.util.stream.Collectors.toSet());
 
+                if (!loadedIds.containsAll(citedIds)) {
+                    finishIfRunning(
+                            id, WorkflowStatus.INSUFFICIENT_EVIDENCE);
+
+                    return result(id, followUps, analysis, review);
+                }
                 // Missing sources cannot justify approval.
                 if (excerpts == null || excerpts.isEmpty()) {
                     finishIfRunning(
