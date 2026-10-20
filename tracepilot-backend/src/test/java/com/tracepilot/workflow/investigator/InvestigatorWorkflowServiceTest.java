@@ -81,15 +81,24 @@ class InvestigatorWorkflowServiceTest {
 
         var result = service.execute(workflowId);
 
-        assertEquals(InvestigationStatus.COMPLETED,
-                result.status());
+        assertEquals(
+                InvestigationStatus.COMPLETED,
+                result.status()
+        );
 
-        verify(workflows).completeStep(
-                eq(stepId), anyString());
+        verify(workflows).completeStepWithOutput(
+                eq(stepId),
+                eq(AgentRole.INVESTIGATOR),
+                contains("Investigation completed"),
+                eq(result),
+                eq(investigationId)
+        );
 
         verify(workflows, never()).finishWorkflow(
-                any(), any());
+                any(), any()
+        );
     }
+
 
     @Test
     void leavesWorkflowOpenWhenEvidenceInsufficient() {
@@ -105,13 +114,24 @@ class InvestigatorWorkflowServiceTest {
         when(investigations.evidence(investigationId))
                 .thenReturn(List.of());
 
-        service.execute(workflowId);
+        var result = service.execute(workflowId);
 
-        verify(workflows).completeStep(
-                eq(stepId), anyString());
+        assertEquals(
+                InvestigationStatus.INSUFFICIENT_EVIDENCE,
+                result.status()
+        );
+
+        verify(workflows).completeStepWithOutput(
+                eq(stepId),
+                eq(AgentRole.INVESTIGATOR),
+                contains("Insufficient evidence"),
+                eq(result),
+                eq(investigationId)
+        );
 
         verify(workflows, never()).finishWorkflow(
-                any(), any());
+                any(), any()
+        );
     }
 
     @Test
