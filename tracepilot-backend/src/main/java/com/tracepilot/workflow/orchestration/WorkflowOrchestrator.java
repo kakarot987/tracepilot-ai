@@ -250,8 +250,6 @@ public class WorkflowOrchestrator {
             throw ex;
         }
         finally {
-            leases.release(lease);
-
             try {
                 leases.release(lease);
             } catch (RuntimeException releaseFailure) {
@@ -262,6 +260,7 @@ public class WorkflowOrchestrator {
                 );
             }
         }
+
         return result(id, followUps, analysis, review);
     }
 

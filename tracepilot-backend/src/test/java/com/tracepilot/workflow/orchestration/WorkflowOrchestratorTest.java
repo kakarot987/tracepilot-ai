@@ -39,6 +39,7 @@ class WorkflowOrchestratorTest {
 
     @BeforeEach
     void setUp() {
+
         workflows = mock(WorkflowPersistenceService.class);
         triage = mock(TriageWorkflowService.class);
         investigator = mock(InvestigatorWorkflowService.class);
@@ -48,25 +49,23 @@ class WorkflowOrchestratorTest {
         leases = mock(WorkflowLeaseService.class);
         heartbeats = mock(WorkflowHeartbeatService.class);
 
-        heartbeat = mock(
-                WorkflowHeartbeatService.Heartbeat.class
-        );
-
-        when(heartbeats.start(lease))
-                .thenReturn(heartbeat);
-        orchestrator = new WorkflowOrchestrator(
-                workflows, triage, investigator,
-                rootCause, reviewer, evidenceProvider,
-                leases, heartbeats
-        );
-
+        // Initialize IDs before creating the lease.
         workflowId = UUID.randomUUID();
+
         lease = new WorkflowLease(
                 workflowId,
                 UUID.randomUUID(),
                 1L,
                 Instant.now().plusSeconds(60)
         );
+
+        heartbeat = mock(
+                WorkflowHeartbeatService.Heartbeat.class
+        );
+
+        // Stub using the initialized lease.
+        when(heartbeats.start(lease))
+                .thenReturn(heartbeat);
 
         when(leases.acquire(
                 eq(workflowId),
@@ -101,6 +100,17 @@ class WorkflowOrchestratorTest {
 
         when(workflows.get(workflowId))
                 .thenReturn(running);
+
+        orchestrator = new WorkflowOrchestrator(
+                workflows,
+                triage,
+                investigator,
+                rootCause,
+                reviewer,
+                evidenceProvider,
+                leases,
+                heartbeats
+        );
     }
 
     @Test
@@ -130,5 +140,13 @@ class WorkflowOrchestratorTest {
         verifyNoInteractions(evidenceProvider);
 
         assertEquals(workflowId, result.workflowId());
+
+        verify(heartbeats).start(lease);
+
+        verify(heartbeat, atLeastOnce()).assertHealthy();
+
+        verify(heartbeat).close();
+
+        verify(leases, times(1)).release(lease);
     }
 }
