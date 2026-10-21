@@ -14,6 +14,7 @@ import com.tracepilot.workflow.triage.TriageWorkflowService;
 import org.springframework.boot.autoconfigure.condition.ConditionalOnBean;
 import com.tracepilot.workflow.reviewer.ReviewEvidenceProvider;
 import com.tracepilot.workflow.persistence.WorkflowLeaseService;
+import com.tracepilot.workflow.persistence.WorkflowHeartbeatService;
 
 import org.springframework.context.annotation.Profile;
 import org.springframework.stereotype.Service;
@@ -42,6 +43,7 @@ public class WorkflowOrchestrator {
     private static final org.slf4j.Logger log =
             org.slf4j.LoggerFactory.getLogger(
                     WorkflowOrchestrator.class);
+    private final WorkflowHeartbeatService heartbeats;
 
     public WorkflowOrchestrator(
             WorkflowPersistenceService workflows,
@@ -50,7 +52,8 @@ public class WorkflowOrchestrator {
             RootCauseWorkflowService rootCause,
             ReviewerWorkflowService reviewer,
             ReviewEvidenceProvider evidenceProvider,
-            WorkflowLeaseService leases) {
+            WorkflowLeaseService leases,
+            WorkflowHeartbeatService heartbeats) {
 
         this.workflows = Objects.requireNonNull(workflows);
         this.triage = Objects.requireNonNull(triage);
@@ -60,6 +63,7 @@ public class WorkflowOrchestrator {
         this.evidenceProvider =
                 Objects.requireNonNull(evidenceProvider);
         this.leases = Objects.requireNonNull(leases);
+        this.heartbeats = Objects.requireNonNull(heartbeats);
     }
 
     public WorkflowExecutionResult execute(String incidentId) {
@@ -78,11 +82,10 @@ public class WorkflowOrchestrator {
         ReviewerResult review = null;
         FollowUpFocus nextFocus = null;
 
-        try {
+        try(var heartbeat = heartbeats.start(lease)) {
             checkDeadline(id,lease);
 
             triage.execute(id, lease);
-
             // The adapter may itself finalize the workflow
             // if its execution fails.
             requireRunning(id);
@@ -95,6 +98,7 @@ public class WorkflowOrchestrator {
                         nextFocus == null
                                 ? investigator.execute(id, lease)
                                 : investigator.execute(id, nextFocus, lease);
+                heartbeat.assertHealthy();
 
                 if (investigation.status()
                         != InvestigationStatus.COMPLETED) {
@@ -115,7 +119,7 @@ public class WorkflowOrchestrator {
                 checkDeadline(id,lease);
 
                 analysis = rootCause.execute(id, investigation, lease);
-
+                heartbeat.assertHealthy();
                 requireRunning(id);
                 checkDeadline(id,lease);
 
@@ -161,12 +165,14 @@ public class WorkflowOrchestrator {
                 }
 
                 review = reviewer.execute(id, analysis, excerpts, lease);
+                heartbeat.assertHealthy();
 
                 requireRunning(id);
                 checkDeadline(id,lease);
 
                 switch (review.decision()) {
                     case ACCEPT -> {
+                        heartbeat.assertHealthy();
                         workflows.finishWorkflow(
                                 id, WorkflowStatus.COMPLETED,lease);
                         return result(id, followUps, analysis, review);
@@ -244,10 +250,11 @@ public class WorkflowOrchestrator {
             throw ex;
         }
         finally {
+            leases.release(lease);
+
             try {
                 leases.release(lease);
             } catch (RuntimeException releaseFailure) {
-                // Do not replace the original execution failure.
                 log.warn(
                         "Could not release workflow lease; workflowId={}",
                         id,
@@ -255,7 +262,6 @@ public class WorkflowOrchestrator {
                 );
             }
         }
-
         return result(id, followUps, analysis, review);
     }
 

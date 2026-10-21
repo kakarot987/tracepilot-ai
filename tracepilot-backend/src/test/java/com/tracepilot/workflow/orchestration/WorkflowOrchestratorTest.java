@@ -34,6 +34,8 @@ class WorkflowOrchestratorTest {
     private WorkflowRunRecord running;
     private WorkflowLeaseService leases;
     private WorkflowLease lease;
+    private WorkflowHeartbeatService heartbeats;
+    private WorkflowHeartbeatService.Heartbeat heartbeat;
 
     @BeforeEach
     void setUp() {
@@ -44,11 +46,18 @@ class WorkflowOrchestratorTest {
         reviewer = mock(ReviewerWorkflowService.class);
         evidenceProvider = mock(ReviewEvidenceProvider.class);
         leases = mock(WorkflowLeaseService.class);
+        heartbeats = mock(WorkflowHeartbeatService.class);
 
+        heartbeat = mock(
+                WorkflowHeartbeatService.Heartbeat.class
+        );
+
+        when(heartbeats.start(lease))
+                .thenReturn(heartbeat);
         orchestrator = new WorkflowOrchestrator(
                 workflows, triage, investigator,
                 rootCause, reviewer, evidenceProvider,
-                leases
+                leases, heartbeats
         );
 
         workflowId = UUID.randomUUID();
