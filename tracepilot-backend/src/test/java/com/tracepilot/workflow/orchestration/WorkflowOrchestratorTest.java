@@ -33,6 +33,7 @@ class WorkflowOrchestratorTest {
     private UUID workflowId;
     private WorkflowRunRecord running;
     private WorkflowLeaseService leases;
+    private WorkflowLease lease;
 
     @BeforeEach
     void setUp() {
@@ -51,6 +52,19 @@ class WorkflowOrchestratorTest {
         );
 
         workflowId = UUID.randomUUID();
+        lease = new WorkflowLease(
+                workflowId,
+                UUID.randomUUID(),
+                1L,
+                Instant.now().plusSeconds(60)
+        );
+
+        when(leases.acquire(
+                eq(workflowId),
+                any(UUID.class)
+        )).thenReturn(
+                java.util.Optional.of(lease)
+        );
 
         running = new WorkflowRunRecord(
                 workflowId,
@@ -99,9 +113,7 @@ class WorkflowOrchestratorTest {
         verify(workflows).finishWorkflow(
                 workflowId,
                 WorkflowStatus.INSUFFICIENT_EVIDENCE,
-                leases.acquire(
-                        workflowId, UUID.randomUUID()
-                ).orElseThrow()
+                lease
         );
 
         verifyNoInteractions(rootCause);

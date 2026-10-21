@@ -12,6 +12,8 @@ import com.tracepilot.workflow.persistence.WorkflowLease;
 import com.tracepilot.workflow.persistence.WorkflowPersistenceService;
 import com.tracepilot.workflow.persistence.WorkflowRunRecord;
 import com.tracepilot.workflow.persistence.WorkflowStepRecord;
+import com.tracepilot.workflow.persistence.WorkflowLeaseService;
+import java.util.Optional;
 
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
@@ -35,17 +37,20 @@ class InvestigatorWorkflowServiceTest {
     private UUID stepId;
     private UUID investigationId;
     private WorkflowLease lease;
+    private WorkflowLeaseService leases;
 
     @BeforeEach
     void setUp() {
         investigator = mock(InvestigationAgent.class);
         investigations = mock(InvestigationService.class);
         workflows = mock(WorkflowPersistenceService.class);
+        leases = mock(WorkflowLeaseService.class);
 
         service = new InvestigatorWorkflowService(
                 investigator,
                 investigations,
-                workflows
+                workflows,
+                leases
 
         );
 
@@ -59,6 +64,11 @@ class InvestigatorWorkflowServiceTest {
                 1L,
                 Instant.now().plusSeconds(60)
         );
+
+        when(leases.acquire(
+                eq(workflowId),
+                any(UUID.class)
+        )).thenReturn(Optional.of(lease));
 
         when(workflows.get(workflowId))
                 .thenReturn(new WorkflowRunRecord(
@@ -107,9 +117,7 @@ class InvestigatorWorkflowServiceTest {
                 .thenReturn(List.of());
 
         var result = service.execute(
-                workflowId,
-                null,
-                lease
+                workflowId
         );
 
         assertEquals(
@@ -154,9 +162,7 @@ class InvestigatorWorkflowServiceTest {
                 .thenReturn(List.of());
 
         var result = service.execute(
-                workflowId,
-                null,
-                lease
+                workflowId
         );
 
         assertEquals(
@@ -195,9 +201,7 @@ class InvestigatorWorkflowServiceTest {
                 .thenReturn(List.of());
 
         var result = service.execute(
-                workflowId,
-                null,
-                lease
+                workflowId
         );
 
         assertEquals(

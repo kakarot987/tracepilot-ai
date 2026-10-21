@@ -10,6 +10,8 @@ import com.tracepilot.workflow.persistence.WorkflowPersistenceService;
 import com.tracepilot.workflow.persistence.WorkflowRunRecord;
 import com.tracepilot.workflow.persistence.WorkflowStepRecord;
 import com.tracepilot.workflow.rootcause.RootCauseResult;
+import com.tracepilot.workflow.persistence.WorkflowLease;
+import java.util.Optional;
 
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
@@ -28,6 +30,7 @@ class ReviewerWorkflowServiceTest {
     private WorkflowPersistenceService workflows;
     private ReviewerWorkflowService service;
     private WorkflowLeaseService leases;
+    private WorkflowLease lease;
 
     private UUID workflowId;
     private UUID stepId;
@@ -46,7 +49,17 @@ class ReviewerWorkflowServiceTest {
 
         workflowId = UUID.randomUUID();
         stepId = UUID.randomUUID();
+        lease = new WorkflowLease(
+                workflowId,
+                UUID.randomUUID(),
+                1L,
+                Instant.now().plusSeconds(60)
+        );
 
+        when(leases.acquire(
+                eq(workflowId),
+                any(UUID.class)
+        )).thenReturn(Optional.of(lease));
         when(workflows.get(workflowId))
                 .thenReturn(new WorkflowRunRecord(
                         workflowId,
@@ -64,9 +77,7 @@ class ReviewerWorkflowServiceTest {
         when(workflows.beginStep(
                 workflowId,
                 AgentRole.REVIEWER,
-                leases.acquire(
-                        workflowId, UUID.randomUUID()
-                ).orElseThrow()
+                lease
         )).thenReturn(new WorkflowStepRecord(
                 stepId,
                 workflowId,
@@ -128,10 +139,6 @@ class ReviewerWorkflowServiceTest {
         assertEquals(ReviewDecision.ACCEPT,
                 actual.decision());
 
-        var lease = leases.acquire(
-                workflowId, UUID.randomUUID()
-        ).orElseThrow();
-
         verify(workflows).beginStep(
                 workflowId, AgentRole.REVIEWER, lease);
 
@@ -180,9 +187,7 @@ class ReviewerWorkflowServiceTest {
                 contains("FOLLOW_UP"),
                 any(ReviewerResult.class),
                 isNull(),
-                leases.acquire(
-                        workflowId, UUID.randomUUID()
-                ).orElseThrow()
+                eq(lease)
         );
 
         verify(workflows, never()).finishWorkflow(
@@ -221,14 +226,10 @@ class ReviewerWorkflowServiceTest {
         );
 
         verify(workflows).failStep(
-                stepId, "REVIEWER_FAILED", leases.acquire(
-                        workflowId, UUID.randomUUID()
-                ).orElseThrow());
+                stepId, "REVIEWER_FAILED", lease);
 
         verify(workflows).finishWorkflow(
-                workflowId, WorkflowStatus.FAILED, leases.acquire(
-                        workflowId, UUID.randomUUID()
-                ).orElseThrow());
+                workflowId, WorkflowStatus.FAILED, lease);
     }
 
     @Test

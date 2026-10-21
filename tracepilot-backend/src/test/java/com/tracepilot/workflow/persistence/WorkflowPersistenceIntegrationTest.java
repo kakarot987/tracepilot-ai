@@ -29,13 +29,18 @@ class WorkflowPersistenceIntegrationTest {
     @Autowired
     WorkflowLeaseService leases;
 
+    private WorkflowLease acquireLease(UUID workflowId) {
+        return leases.acquire(
+                workflowId,
+                UUID.randomUUID()
+        ).orElseThrow();
+    }
+
     @Test
     void persistsChronologicalAgentTrace() {
 
         var run = workflows.start("INC-DB-001");
-        var lease = leases.acquire(
-                run.id(), UUID.randomUUID()
-        ).orElseThrow();
+        var lease = acquireLease(run.id());
 
         assertEquals(WorkflowStatus.PENDING, run.status());
 
@@ -77,17 +82,18 @@ class WorkflowPersistenceIntegrationTest {
     void rejectsDoubleCompletion() {
 
         var run = workflows.start("INC-PAY-001");
+        var lease = acquireLease(run.id());
         var step = workflows.beginStep(
                 run.id(),
                 AgentRole.TRIAGE,
-                leases.acquire(run.id(), UUID.randomUUID()).orElseThrow());
+                lease);
 
-        workflows.completeStep(step.id(), "Triage done", leases.acquire(run.id(), UUID.randomUUID()).orElseThrow());
+        workflows.completeStep(step.id(), "Triage done", lease);
 
         assertThrows(
                 IllegalStateException.class,
                 () -> workflows.completeStep(
-                        step.id(), "Duplicate completion", leases.acquire(run.id(), UUID.randomUUID()).orElseThrow()));
+                        step.id(), "Duplicate completion", lease));
     }
 
     @Test
@@ -95,9 +101,7 @@ class WorkflowPersistenceIntegrationTest {
 
         var run = workflows.start("INC-MEM-001");
 
-        var lease = leases.acquire(
-                run.id(), UUID.randomUUID()
-        ).orElseThrow();
+        var lease = acquireLease(run.id());
 
         workflows.finishWorkflow(
                 run.id(),
@@ -115,15 +119,16 @@ class WorkflowPersistenceIntegrationTest {
     void rejectsFinalizingActiveWorkflow() {
 
         var run = workflows.start("INC-RATE-001");
+        var lease = acquireLease(run.id());
 
         workflows.beginStep(
-                run.id(), AgentRole.INVESTIGATOR, leases.acquire(run.id(), UUID.randomUUID()).orElseThrow());
+                run.id(), AgentRole.INVESTIGATOR, lease);
 
         assertThrows(
                 IllegalStateException.class,
                 () -> workflows.finishWorkflow(
                         run.id(), WorkflowStatus.COMPLETED,
-                        leases.acquire(run.id(), UUID.randomUUID()).orElseThrow(IllegalStateException::new)));
+                        lease));
     }
 
     @Test
