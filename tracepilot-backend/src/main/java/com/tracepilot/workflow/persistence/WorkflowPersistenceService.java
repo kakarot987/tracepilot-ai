@@ -61,7 +61,9 @@ public class WorkflowPersistenceService {
 
     @Transactional
     public WorkflowStepRecord beginStep(
-            UUID workflowId, AgentRole role) {
+            UUID workflowId,
+            AgentRole role,
+            WorkflowLease lease) {
 
         if (role == null) {
             throw new IllegalArgumentException(
@@ -88,6 +90,7 @@ public class WorkflowPersistenceService {
         }
 
         requireBeforeDeadline(run);
+        requireOwnership(workflowId, lease);
 
         if (run.stepsUsed() >= MAX_STEPS) {
             throw new IllegalStateException(
@@ -141,22 +144,25 @@ public class WorkflowPersistenceService {
     }
 
     @Transactional
-    public void completeStep(UUID stepId, String summary) {
+    public void completeStep(UUID stepId, String summary,
+                             WorkflowLease lease) {
         finishStep(stepId, WorkflowStepStatus.COMPLETED,
-                summary, null);
+                summary, null,lease);
     }
 
     @Transactional
-    public void failStep(UUID stepId, String errorCode) {
+    public void failStep(UUID stepId, String errorCode,
+                         WorkflowLease lease) {
         finishStep(stepId, WorkflowStepStatus.FAILED,
-                null, errorCode);
+                null, errorCode, lease);
     }
 
     private void finishStep(
             UUID stepId,
             WorkflowStepStatus desired,
             String summary,
-            String errorCode) {
+            String errorCode,
+            WorkflowLease lease) {
 
         // Lock the workflow first to maintain a consistent
         // lock order across all lifecycle operations.
@@ -189,6 +195,7 @@ public class WorkflowPersistenceService {
         if (desired == WorkflowStepStatus.COMPLETED) {
             requireBeforeDeadline(run);
         }
+        requireOwnership(workflowId, lease);
 
         WorkflowStepRecord step = jdbc.sql("""
                         SELECT *
@@ -245,7 +252,7 @@ public class WorkflowPersistenceService {
 
     @Transactional
     public void finishWorkflow(
-            UUID workflowId, WorkflowStatus status) {
+            UUID workflowId, WorkflowStatus status, WorkflowLease lease) {
 
         if (status == null || !status.isTerminal()) {
             throw new IllegalArgumentException(
@@ -274,6 +281,7 @@ public class WorkflowPersistenceService {
         if (status == WorkflowStatus.COMPLETED) {
             requireBeforeDeadline(run);
         }
+        requireOwnership(workflowId, lease);
 
         jdbc.sql("""
                                     UPDATE workflow_runs
@@ -365,6 +373,9 @@ public class WorkflowPersistenceService {
           AND follow_ups_used < 1
           AND started_at >
               clock_timestamp() - INTERVAL '4 minutes'
+          AND execution_owner = :owner
+          AND fencing_token = :token
+          AND lease_expires_at > clock_timestamp()
         """)
                 .param("id", workflowId)
                 .update();
@@ -378,7 +389,8 @@ public class WorkflowPersistenceService {
             AgentRole expectedRole,
             String summary,
             Object output,
-            UUID investigationRunId) {
+            UUID investigationRunId,
+            WorkflowLease lease) {
 
         if (stepId == null || expectedRole == null
                 || output == null) {
@@ -436,6 +448,7 @@ public class WorkflowPersistenceService {
         }
 
         requireBeforeDeadline(run);
+        requireOwnership(workflowId, lease);
 
         if (investigationRunId != null) {
             if (expectedRole != AgentRole.INVESTIGATOR) {
@@ -705,6 +718,39 @@ public class WorkflowPersistenceService {
         if (!Instant.now().isBefore(deadline)) {
             throw new IllegalStateException(
                     "Workflow deadline exceeded");
+        }
+    }
+
+    private void requireOwnership(
+            UUID workflowId,
+            WorkflowLease lease) {
+
+        if (lease == null
+                || !workflowId.equals(lease.workflowId())) {
+            throw new IllegalStateException(
+                    "Workflow lease does not match workflow");
+        }
+
+        boolean valid = jdbc.sql("""
+            SELECT EXISTS (
+                SELECT 1
+                FROM workflow_runs
+                WHERE id = :workflowId
+                  AND execution_owner = :owner
+                  AND fencing_token = :token
+                  AND lease_expires_at > clock_timestamp()
+                  AND status IN ('PENDING', 'RUNNING')
+            )
+            """)
+                .param("workflowId", workflowId)
+                .param("owner", lease.ownerId())
+                .param("token", lease.fencingToken())
+                .query(Boolean.class)
+                .single();
+
+        if (!valid) {
+            throw new IllegalStateException(
+                    "Workflow execution ownership lost");
         }
     }
 

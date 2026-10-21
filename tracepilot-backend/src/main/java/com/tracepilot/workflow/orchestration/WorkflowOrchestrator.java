@@ -5,6 +5,7 @@ import com.tracepilot.investigation.domain.InvestigationStatus;
 import com.tracepilot.workflow.domain.WorkflowStatus;
 import com.tracepilot.workflow.investigator.InvestigatorStepResult;
 import com.tracepilot.workflow.investigator.InvestigatorWorkflowService;
+import com.tracepilot.workflow.persistence.WorkflowLease;
 import com.tracepilot.workflow.persistence.WorkflowLimits;
 import com.tracepilot.workflow.persistence.WorkflowPersistenceService;
 import com.tracepilot.workflow.reviewer.*;
@@ -57,6 +58,12 @@ public class WorkflowOrchestrator {
     public WorkflowExecutionResult execute(String incidentId) {
 
         var workflow = workflows.start(incidentId);
+        WorkflowLease lease = leases.acquire(
+                workflow.id(),
+                UUID.randomUUID()
+        ).orElseThrow(() ->
+                new IllegalStateException(
+                        "Workflow is already owned"));
         UUID id = workflow.id();
 
         int followUps = 0;
