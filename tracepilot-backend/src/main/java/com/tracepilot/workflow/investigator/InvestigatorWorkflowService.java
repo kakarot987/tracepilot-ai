@@ -8,6 +8,7 @@ import com.tracepilot.workflow.domain.AgentRole;
 import com.tracepilot.workflow.domain.WorkflowStatus;
 import com.tracepilot.workflow.persistence.WorkflowLease;
 import com.tracepilot.workflow.persistence.WorkflowLeaseService;
+import com.tracepilot.workflow.persistence.WorkflowLimits;
 import com.tracepilot.workflow.persistence.WorkflowPersistenceService;
 
 import org.springframework.context.annotation.Profile;
@@ -51,9 +52,16 @@ public class InvestigatorWorkflowService {
 
 
         try {
-            var execution = focus == null
-                    ? investigator.investigate(workflow.incidentId())
-                    : investigator.investigate(workflow.incidentId(), focus);
+            int toolLimit = focus == null
+                    ? WorkflowLimits.INITIAL_TOOL_CALLS
+                    : WorkflowLimits.MAX_WORKFLOW_TOOL_CALLS
+                    - WorkflowLimits.INITIAL_TOOL_CALLS;
+
+            var execution = investigator.investigate(
+                    workflow.incidentId(),
+                    focus,
+                    toolLimit
+            );
 
             var evidenceIds = investigations
                     .evidence(execution.runId())

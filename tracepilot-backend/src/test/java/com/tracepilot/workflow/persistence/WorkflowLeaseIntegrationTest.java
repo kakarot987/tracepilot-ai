@@ -1,8 +1,10 @@
 
 package com.tracepilot.workflow.persistence;
 
+import com.tracepilot.workflow.domain.AgentRole;
 import com.tracepilot.workflow.domain.WorkflowStatus;
 
+import com.tracepilot.workflow.domain.WorkflowStepStatus;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.condition.EnabledIfEnvironmentVariable;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -152,4 +154,80 @@ class WorkflowLeaseIntegrationTest {
                 ).isEmpty()
         );
     }
+
+
+    @Test
+    void rejectsStaleExecutorAfterLeaseTakeover() {
+
+        var workflow = workflows.start("INC-DB-001");
+
+        var oldLease = leases.acquire(
+                workflow.id(),
+                UUID.randomUUID()
+        ).orElseThrow();
+
+        var step = workflows.beginStep(
+                workflow.id(),
+                AgentRole.REVIEWER,
+                oldLease
+        );
+
+        // Simulate lease expiration without sleeping.
+        jdbc.sql("""
+            UPDATE workflow_runs
+            SET lease_expires_at =
+                clock_timestamp() - INTERVAL '1 second'
+            WHERE id = :id
+            """)
+                .param("id", workflow.id())
+                .update();
+
+        var newLease = leases.acquire(
+                workflow.id(),
+                UUID.randomUUID()
+        ).orElseThrow();
+
+        assertTrue(
+                newLease.fencingToken()
+                        > oldLease.fencingToken()
+        );
+
+        // Old executor must not commit a late result.
+        assertThrows(
+                IllegalStateException.class,
+                () -> workflows.completeStepWithOutput(
+                        step.id(),
+                        AgentRole.REVIEWER,
+                        "Late reviewer acceptance",
+                        java.util.Map.of(
+                                "decision", "ACCEPT"
+                        ),
+                        null,
+                        oldLease
+                )
+        );
+
+        assertTrue(
+                workflows.output(step.id()).isEmpty()
+        );
+
+        assertEquals(
+                WorkflowStepStatus.RUNNING,
+                workflows.getStep(step.id()).status()
+        );
+
+        // A new owner must not bypass an already-running step.
+        assertThrows(
+                IllegalStateException.class,
+                () -> workflows.beginStep(
+                        workflow.id(),
+                        AgentRole.INVESTIGATOR,
+                        newLease
+                )
+        );
+
+        assertFalse(leases.isOwner(oldLease));
+        assertTrue(leases.isOwner(newLease));
+    }
+
 }

@@ -8,6 +8,7 @@ import com.tracepilot.investigation.service.InvestigationService;
 import com.tracepilot.workflow.domain.AgentRole;
 import com.tracepilot.workflow.domain.WorkflowStatus;
 import com.tracepilot.workflow.domain.WorkflowStepStatus;
+import com.tracepilot.workflow.orchestration.FollowUpFocus;
 import com.tracepilot.workflow.persistence.WorkflowLease;
 import com.tracepilot.workflow.persistence.WorkflowPersistenceService;
 import com.tracepilot.workflow.persistence.WorkflowRunRecord;
@@ -97,7 +98,11 @@ class InvestigatorWorkflowServiceTest {
     @Test
     void completesSuccessfulInvestigationStep() {
 
-        when(investigator.investigate("INC-DB-001"))
+        when(investigator.investigate(
+                eq("INC-DB-001"),
+                isNull(),
+                eq(8)
+        ))
                 .thenReturn(new AgentExecution(
                         investigationId,
                         InvestigationStatus.COMPLETED,
@@ -137,12 +142,22 @@ class InvestigatorWorkflowServiceTest {
                 any(),
                 any()
         );
+
+        verify(investigator).investigate(
+                "INC-DB-001",
+                null,
+                8
+        );
     }
 
     @Test
     void leavesWorkflowOpenWhenEvidenceInsufficient() {
 
-        when(investigator.investigate("INC-DB-001"))
+        when(investigator.investigate(
+                eq("INC-DB-001"),
+                isNull(),
+                eq(8)
+        ))
                 .thenReturn(new AgentExecution(
                         investigationId,
                         InvestigationStatus.INSUFFICIENT_EVIDENCE,
@@ -181,7 +196,11 @@ class InvestigatorWorkflowServiceTest {
     @Test
     void terminatesWorkflowOnInvestigatorTimeout() {
 
-        when(investigator.investigate("INC-DB-001"))
+        when(investigator.investigate(
+                eq("INC-DB-001"),
+                isNull(),
+                eq(8)
+        ))
                 .thenReturn(new AgentExecution(
                         investigationId,
                         InvestigationStatus.TIMED_OUT,
@@ -222,4 +241,53 @@ class InvestigatorWorkflowServiceTest {
                 any()
         );
     }
+
+    @Test
+    void limitsFocusedFollowUpToFourToolCalls() {
+
+        var focus = new FollowUpFocus(
+                List.of("Inspect slow transactions")
+        );
+
+        when(investigator.investigate(
+                eq("INC-DB-001"),
+                eq(focus),
+                eq(4)
+        )).thenReturn(new AgentExecution(
+                investigationId,
+                InvestigationStatus.COMPLETED,
+                "Follow-up investigation completed",
+                4
+        ));
+
+        when(investigations.evidence(investigationId))
+                .thenReturn(List.of());
+
+        var result = service.execute(
+                workflowId,
+                focus,
+                lease
+        );
+
+        assertEquals(
+                4,
+                result.toolCallsUsed()
+        );
+
+        verify(investigator).investigate(
+                "INC-DB-001",
+                focus,
+                4
+        );
+
+        verify(workflows).completeStepWithOutput(
+                eq(stepId),
+                eq(AgentRole.INVESTIGATOR),
+                contains("Investigation completed"),
+                eq(result),
+                eq(investigationId),
+                eq(lease)
+        );
+    }
+
 }
