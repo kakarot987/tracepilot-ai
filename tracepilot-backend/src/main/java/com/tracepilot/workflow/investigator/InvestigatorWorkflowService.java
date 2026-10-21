@@ -23,36 +23,27 @@ public class InvestigatorWorkflowService {
     private final InvestigationAgent investigator;
     private final InvestigationService investigations;
     private final WorkflowPersistenceService workflows;
-    private final WorkflowLeaseService leases;
 
     public InvestigatorWorkflowService(
             InvestigationAgent investigator,
             InvestigationService investigations,
-            WorkflowPersistenceService workflows,
-            WorkflowLeaseService leases) {
+            WorkflowPersistenceService workflows) {
 
         this.investigator = Objects.requireNonNull(investigator);
         this.investigations = Objects.requireNonNull(investigations);
         this.workflows = Objects.requireNonNull(workflows);
-        this.leases = Objects.requireNonNull(leases);
     }
 
-    public InvestigatorStepResult execute(UUID workflowId) {
-        return execute(workflowId, null);
+    public InvestigatorStepResult execute(UUID workflowId, WorkflowLease lease) {
+        return execute(workflowId, null, lease);
     }
 
     public InvestigatorStepResult execute(
             UUID workflowId,
-            FollowUpFocus focus) {
+            FollowUpFocus focus,
+            WorkflowLease lease) {
 
         var workflow = workflows.get(workflowId);
-
-        WorkflowLease lease = leases.acquire(
-                workflow.id(),
-                UUID.randomUUID()
-        ).orElseThrow(() ->
-                new IllegalStateException(
-                        "Workflow is already owned"));
 
         var step = workflows.beginStep(
                 workflowId, AgentRole.INVESTIGATOR,lease);

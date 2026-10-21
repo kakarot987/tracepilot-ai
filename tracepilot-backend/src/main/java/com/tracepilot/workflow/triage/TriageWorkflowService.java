@@ -5,7 +5,6 @@ import com.tracepilot.incident.repository.IncidentRepository;
 import com.tracepilot.workflow.domain.AgentRole;
 import com.tracepilot.workflow.persistence.WorkflowLease;
 import com.tracepilot.workflow.persistence.WorkflowPersistenceService;
-import com.tracepilot.workflow.persistence.WorkflowLeaseService;
 
 import org.springframework.context.annotation.Profile;
 import org.springframework.stereotype.Service;
@@ -20,29 +19,20 @@ public class TriageWorkflowService {
     private final IncidentRepository incidents;
     private final TriageAgent triageAgent;
     private final WorkflowPersistenceService workflows;
-    private final WorkflowLeaseService leases;
 
     public TriageWorkflowService(
             IncidentRepository incidents,
             TriageAgent triageAgent,
-            WorkflowPersistenceService workflows,
-            WorkflowLeaseService leases) {
+            WorkflowPersistenceService workflows) {
 
         this.incidents = Objects.requireNonNull(incidents);
         this.triageAgent = Objects.requireNonNull(triageAgent);
         this.workflows = Objects.requireNonNull(workflows);
-        this.leases = Objects.requireNonNull(leases);
     }
 
-    public TriageResult execute(UUID workflowId) {
+    public TriageResult execute(UUID workflowId, WorkflowLease lease) {
 
         var run = workflows.get(workflowId);
-        WorkflowLease lease = leases.acquire(
-                run.id(),
-                UUID.randomUUID()
-        ).orElseThrow(() ->
-                new IllegalStateException(
-                        "Workflow is already owned"));
 
         var incident = incidents.findById(run.incidentId())
                 .orElseThrow(() ->

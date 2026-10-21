@@ -97,7 +97,7 @@ class WorkflowOrchestratorTest {
     @Test
     void stopsBeforeRootCauseWhenEvidenceIsInsufficient() {
 
-        when(investigator.execute(workflowId))
+        when(investigator.execute(workflowId, lease))
                 .thenReturn(new InvestigatorStepResult(
                         UUID.randomUUID(),
                         InvestigationStatus.INSUFFICIENT_EVIDENCE,
@@ -108,7 +108,7 @@ class WorkflowOrchestratorTest {
 
         var result = orchestrator.execute("INC-DB-001");
 
-        verify(triage).execute(workflowId);
+        verify(triage).execute(workflowId, lease);
 
         verify(workflows).finishWorkflow(
                 workflowId,

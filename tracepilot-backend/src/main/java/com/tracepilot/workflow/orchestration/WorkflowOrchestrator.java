@@ -39,6 +39,9 @@ public class WorkflowOrchestrator {
     private final ReviewerWorkflowService reviewer;
     private final ReviewEvidenceProvider evidenceProvider;
     private final WorkflowLeaseService leases;
+    private static final org.slf4j.Logger log =
+            org.slf4j.LoggerFactory.getLogger(
+                    WorkflowOrchestrator.class);
 
     public WorkflowOrchestrator(
             WorkflowPersistenceService workflows,
@@ -78,7 +81,7 @@ public class WorkflowOrchestrator {
         try {
             checkDeadline(id,lease);
 
-            triage.execute(id);
+            triage.execute(id, lease);
 
             // The adapter may itself finalize the workflow
             // if its execution fails.
@@ -90,8 +93,8 @@ public class WorkflowOrchestrator {
 
                 InvestigatorStepResult investigation =
                         nextFocus == null
-                                ? investigator.execute(id)
-                                : investigator.execute(id, nextFocus);
+                                ? investigator.execute(id, lease)
+                                : investigator.execute(id, nextFocus, lease);
 
                 if (investigation.status()
                         != InvestigationStatus.COMPLETED) {
@@ -111,7 +114,7 @@ public class WorkflowOrchestrator {
                 requireRunning(id);
                 checkDeadline(id,lease);
 
-                analysis = rootCause.execute(id, investigation);
+                analysis = rootCause.execute(id, investigation, lease);
 
                 requireRunning(id);
                 checkDeadline(id,lease);
@@ -157,7 +160,7 @@ public class WorkflowOrchestrator {
                     return result(id, followUps, analysis, review);
                 }
 
-                review = reviewer.execute(id, analysis, excerpts);
+                review = reviewer.execute(id, analysis, excerpts, lease);
 
                 requireRunning(id);
                 checkDeadline(id,lease);
@@ -239,6 +242,18 @@ public class WorkflowOrchestrator {
             }
 
             throw ex;
+        }
+        finally {
+            try {
+                leases.release(lease);
+            } catch (RuntimeException releaseFailure) {
+                // Do not replace the original execution failure.
+                log.warn(
+                        "Could not release workflow lease; workflowId={}",
+                        id,
+                        releaseFailure
+                );
+            }
         }
 
         return result(id, followUps, analysis, review);

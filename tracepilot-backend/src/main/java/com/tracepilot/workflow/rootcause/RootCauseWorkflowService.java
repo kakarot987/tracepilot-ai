@@ -6,7 +6,6 @@ import com.tracepilot.workflow.domain.WorkflowStatus;
 import com.tracepilot.workflow.domain.WorkflowStepStatus;
 import com.tracepilot.workflow.investigator.InvestigatorStepResult;
 import com.tracepilot.workflow.persistence.WorkflowLease;
-import com.tracepilot.workflow.persistence.WorkflowLeaseService;
 import com.tracepilot.workflow.persistence.WorkflowPersistenceService;
 
 import org.springframework.context.annotation.Profile;
@@ -21,30 +20,22 @@ public class RootCauseWorkflowService {
 
     private final RootCauseAgent agent;
     private final WorkflowPersistenceService workflows;
-    private final WorkflowLeaseService leases;
 
     public RootCauseWorkflowService(
             RootCauseAgent agent,
-            WorkflowPersistenceService workflows,
-            WorkflowLeaseService leases) {
+            WorkflowPersistenceService workflows) {
         this.agent = Objects.requireNonNull(agent);
         this.workflows = Objects.requireNonNull(workflows);
-        this.leases = Objects.requireNonNull(leases);
     }
 
     public RootCauseResult execute(
             UUID workflowId,
-            InvestigatorStepResult investigation) {
+            InvestigatorStepResult investigation,
+            WorkflowLease lease) {
 
         Objects.requireNonNull(investigation);
 
         var workflow = workflows.get(workflowId);
-        WorkflowLease lease = leases.acquire(
-                workflow.id(),
-                UUID.randomUUID()
-        ).orElseThrow(() ->
-                new IllegalStateException(
-                        "Workflow is already owned"));
 
         if (workflow.status() != WorkflowStatus.RUNNING) {
             throw new IllegalStateException(

@@ -5,7 +5,6 @@ import com.tracepilot.workflow.domain.AgentRole;
 import com.tracepilot.workflow.domain.Hypothesis;
 import com.tracepilot.workflow.domain.WorkflowStatus;
 import com.tracepilot.workflow.domain.WorkflowStepStatus;
-import com.tracepilot.workflow.persistence.WorkflowLeaseService;
 import com.tracepilot.workflow.persistence.WorkflowPersistenceService;
 import com.tracepilot.workflow.persistence.WorkflowRunRecord;
 import com.tracepilot.workflow.persistence.WorkflowStepRecord;
@@ -29,7 +28,6 @@ class ReviewerWorkflowServiceTest {
     private ReviewerAgent reviewer;
     private WorkflowPersistenceService workflows;
     private ReviewerWorkflowService service;
-    private WorkflowLeaseService leases;
     private WorkflowLease lease;
 
     private UUID workflowId;
@@ -39,12 +37,10 @@ class ReviewerWorkflowServiceTest {
     void setUp() {
         reviewer = mock(ReviewerAgent.class);
         workflows = mock(WorkflowPersistenceService.class);
-        leases = mock(WorkflowLeaseService.class);
 
         service = new ReviewerWorkflowService(
                 reviewer,
-                workflows,
-                leases
+                workflows
         );
 
         workflowId = UUID.randomUUID();
@@ -56,10 +52,6 @@ class ReviewerWorkflowServiceTest {
                 Instant.now().plusSeconds(60)
         );
 
-        when(leases.acquire(
-                eq(workflowId),
-                any(UUID.class)
-        )).thenReturn(Optional.of(lease));
         when(workflows.get(workflowId))
                 .thenReturn(new WorkflowRunRecord(
                         workflowId,
@@ -133,7 +125,8 @@ class ReviewerWorkflowServiceTest {
         ReviewerResult actual = service.execute(
                 workflowId,
                 rootCause(),
-                evidence()
+                evidence(),
+                lease
         );
 
         assertEquals(ReviewDecision.ACCEPT,
@@ -175,7 +168,8 @@ class ReviewerWorkflowServiceTest {
         ReviewerResult actual = service.execute(
                 workflowId,
                 rootCause(),
-                evidence()
+                evidence(),
+                lease
         );
 
         assertEquals(ReviewDecision.FOLLOW_UP,
@@ -221,7 +215,8 @@ class ReviewerWorkflowServiceTest {
                 () -> service.execute(
                         workflowId,
                         rootCause(),
-                        evidence()
+                        evidence(),
+                        lease
                 )
         );
 
@@ -253,7 +248,8 @@ class ReviewerWorkflowServiceTest {
                 () -> service.execute(
                         workflowId,
                         rootCause(),
-                        evidence()
+                        evidence(),
+                        lease
                 )
         );
 

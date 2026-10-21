@@ -5,7 +5,6 @@ import com.tracepilot.workflow.domain.AgentRole;
 import com.tracepilot.workflow.domain.WorkflowStatus;
 import com.tracepilot.workflow.domain.WorkflowStepStatus;
 import com.tracepilot.workflow.persistence.WorkflowLease;
-import com.tracepilot.workflow.persistence.WorkflowLeaseService;
 import com.tracepilot.workflow.rootcause.RootCauseResult;
 import com.tracepilot.workflow.persistence.WorkflowPersistenceService;
 
@@ -22,30 +21,22 @@ public class ReviewerWorkflowService {
 
     private final ReviewerAgent reviewer;
     private final WorkflowPersistenceService workflows;
-    private final WorkflowLeaseService leases;
 
     public ReviewerWorkflowService(
             ReviewerAgent reviewer,
-            WorkflowPersistenceService workflows,
-            WorkflowLeaseService leases) {
+            WorkflowPersistenceService workflows) {
         this.reviewer = Objects.requireNonNull(reviewer);
         this.workflows = Objects.requireNonNull(workflows);
-        this.leases = Objects.requireNonNull(leases);
 
     }
 
     public ReviewerResult execute(
             UUID workflowId,
             RootCauseResult rootCause,
-            List<EvidenceExcerpt> evidence) {
+            List<EvidenceExcerpt> evidence,
+            WorkflowLease lease) {
 
         var workflow = workflows.get(workflowId);
-        WorkflowLease lease = leases.acquire(
-                workflow.id(),
-                UUID.randomUUID()
-        ).orElseThrow(() ->
-                new IllegalStateException(
-                        "Workflow is already owned"));
 
         if (workflow.status() != WorkflowStatus.RUNNING) {
             throw new IllegalStateException(
