@@ -36,13 +36,22 @@ class WorkflowHandoffIntegrationTest {
     @Autowired
     InvestigationService investigations;
 
+    @Autowired
+    WorkflowLeaseService leases;
+
     @Test
     void persistsRootCauseJsonAndReloadsIt() {
         var workflow = workflows.start("INC-DB-001");
 
+        var lease = leases.acquire(
+                workflow.id(), UUID.randomUUID()
+        ).orElseThrow();
+
+
         var step = workflows.beginStep(
                 workflow.id(),
-                AgentRole.ROOT_CAUSE
+                AgentRole.ROOT_CAUSE,
+                lease
         );
 
         var result = new RootCauseResult(
@@ -61,7 +70,8 @@ class WorkflowHandoffIntegrationTest {
                 AgentRole.ROOT_CAUSE,
                 "One provisional hypothesis",
                 result,
-                null
+                null,
+                lease
         );
 
         var persisted = workflows.output(step.id())
@@ -103,7 +113,10 @@ class WorkflowHandoffIntegrationTest {
 
         var step = workflows.beginStep(
                 workflow.id(),
-                AgentRole.INVESTIGATOR
+                AgentRole.INVESTIGATOR,
+                leases.acquire(
+                        workflow.id(), UUID.randomUUID()
+                ).orElseThrow()
         );
 
         workflows.completeStepWithOutput(
@@ -114,7 +127,10 @@ class WorkflowHandoffIntegrationTest {
                         "runId", investigation.id().toString(),
                         "status", "COMPLETED"
                 )),
-                investigation.id()
+                investigation.id(),
+                leases.acquire(
+                        workflow.id(), UUID.randomUUID()
+                ).orElseThrow()
         );
 
         var persisted = workflows.output(step.id())
@@ -135,7 +151,10 @@ class WorkflowHandoffIntegrationTest {
 
         var step = workflows.beginStep(
                 workflow.id(),
-                AgentRole.INVESTIGATOR
+                AgentRole.INVESTIGATOR,
+                leases.acquire(
+                        workflow.id(), UUID.randomUUID()
+                ).orElseThrow()
         );
 
         assertThrows(
@@ -147,8 +166,11 @@ class WorkflowHandoffIntegrationTest {
                         java.util.Map.of(
                                 "status", "COMPLETED"
                         ),
-                        otherInvestigation.id()
-                )
+                        otherInvestigation.id(),
+                        leases.acquire(
+                                workflow.id(), UUID.randomUUID()
+                        ).orElseThrow(IllegalArgumentException::new)
+            )
         );
 
         assertTrue(workflows.output(step.id()).isEmpty());
@@ -160,7 +182,10 @@ class WorkflowHandoffIntegrationTest {
 
         var step = workflows.beginStep(
                 workflow.id(),
-                AgentRole.REVIEWER
+                AgentRole.REVIEWER,
+                leases.acquire(
+                        workflow.id(), UUID.randomUUID()
+                ).orElseThrow()
         );
 
         workflows.completeStepWithOutput(
@@ -170,7 +195,10 @@ class WorkflowHandoffIntegrationTest {
                 java.util.Map.of(
                         "decision", "FOLLOW_UP"
                 ),
-                null
+                null,
+                leases.acquire(
+                        workflow.id(), UUID.randomUUID()
+                ).orElseThrow()
         );
 
         assertThrows(
@@ -182,7 +210,10 @@ class WorkflowHandoffIntegrationTest {
                         java.util.Map.of(
                                 "decision", "ACCEPT"
                         ),
-                        null
+                        null,
+                        leases.acquire(
+                                workflow.id(), UUID.randomUUID()
+                        ).orElseThrow()
                 )
         );
     }

@@ -5,6 +5,8 @@ import com.tracepilot.workflow.domain.AgentRole;
 import com.tracepilot.workflow.domain.WorkflowStatus;
 import com.tracepilot.workflow.domain.WorkflowStepStatus;
 import com.tracepilot.workflow.investigator.InvestigatorStepResult;
+import com.tracepilot.workflow.persistence.WorkflowLease;
+import com.tracepilot.workflow.persistence.WorkflowLeaseService;
 import com.tracepilot.workflow.persistence.WorkflowPersistenceService;
 
 import org.springframework.context.annotation.Profile;
@@ -19,12 +21,15 @@ public class RootCauseWorkflowService {
 
     private final RootCauseAgent agent;
     private final WorkflowPersistenceService workflows;
+    private final WorkflowLeaseService leases;
 
     public RootCauseWorkflowService(
             RootCauseAgent agent,
-            WorkflowPersistenceService workflows) {
+            WorkflowPersistenceService workflows,
+            WorkflowLeaseService leases) {
         this.agent = Objects.requireNonNull(agent);
         this.workflows = Objects.requireNonNull(workflows);
+        this.leases = Objects.requireNonNull(leases);
     }
 
     public RootCauseResult execute(
@@ -34,6 +39,12 @@ public class RootCauseWorkflowService {
         Objects.requireNonNull(investigation);
 
         var workflow = workflows.get(workflowId);
+        WorkflowLease lease = leases.acquire(
+                workflow.id(),
+                UUID.randomUUID()
+        ).orElseThrow(() ->
+                new IllegalStateException(
+                        "Workflow is already owned"));
 
         if (workflow.status() != WorkflowStatus.RUNNING) {
             throw new IllegalStateException(
@@ -43,7 +54,7 @@ public class RootCauseWorkflowService {
         // Step 7 will additionally verify that the child
         // investigation belongs to this workflow/incident.
         var step = workflows.beginStep(
-                workflowId, AgentRole.ROOT_CAUSE);
+                workflowId, AgentRole.ROOT_CAUSE,lease);
 
         try {
             RootCauseResult result = agent.analyze(investigation);
@@ -62,7 +73,8 @@ public class RootCauseWorkflowService {
                     AgentRole.ROOT_CAUSE,
                     summary,
                     result,
-                    null
+                    null,
+                    lease
             );
             return result;
 
@@ -72,10 +84,10 @@ public class RootCauseWorkflowService {
 
                 if (current.status() == WorkflowStepStatus.RUNNING) {
                     workflows.failStep(
-                            step.id(), "ROOT_CAUSE_FAILED");
+                            step.id(), "ROOT_CAUSE_FAILED", lease);
 
                     workflows.finishWorkflow(
-                            workflowId, WorkflowStatus.FAILED);
+                            workflowId, WorkflowStatus.FAILED, lease);
                 }
             } catch (RuntimeException cleanupFailure) {
                 ex.addSuppressed(cleanupFailure);

@@ -13,6 +13,7 @@ import com.tracepilot.workflow.rootcause.*;
 import com.tracepilot.workflow.triage.TriageWorkflowService;
 import org.springframework.boot.autoconfigure.condition.ConditionalOnBean;
 import com.tracepilot.workflow.reviewer.ReviewEvidenceProvider;
+import com.tracepilot.workflow.persistence.WorkflowLeaseService;
 
 import org.springframework.context.annotation.Profile;
 import org.springframework.stereotype.Service;
@@ -37,6 +38,7 @@ public class WorkflowOrchestrator {
     private final RootCauseWorkflowService rootCause;
     private final ReviewerWorkflowService reviewer;
     private final ReviewEvidenceProvider evidenceProvider;
+    private final WorkflowLeaseService leases;
 
     public WorkflowOrchestrator(
             WorkflowPersistenceService workflows,
@@ -44,7 +46,8 @@ public class WorkflowOrchestrator {
             InvestigatorWorkflowService investigator,
             RootCauseWorkflowService rootCause,
             ReviewerWorkflowService reviewer,
-            ReviewEvidenceProvider evidenceProvider) {
+            ReviewEvidenceProvider evidenceProvider,
+            WorkflowLeaseService leases) {
 
         this.workflows = Objects.requireNonNull(workflows);
         this.triage = Objects.requireNonNull(triage);
@@ -53,6 +56,7 @@ public class WorkflowOrchestrator {
         this.reviewer = Objects.requireNonNull(reviewer);
         this.evidenceProvider =
                 Objects.requireNonNull(evidenceProvider);
+        this.leases = Objects.requireNonNull(leases);
     }
 
     public WorkflowExecutionResult execute(String incidentId) {
@@ -72,7 +76,7 @@ public class WorkflowOrchestrator {
         FollowUpFocus nextFocus = null;
 
         try {
-            checkDeadline(id);
+            checkDeadline(id,lease);
 
             triage.execute(id);
 
@@ -82,7 +86,7 @@ public class WorkflowOrchestrator {
 
             for (int pass = 0; pass <= MAX_FOLLOW_UPS; pass++) {
 
-                checkDeadline(id);
+                checkDeadline(id,lease);
 
                 InvestigatorStepResult investigation =
                         nextFocus == null
@@ -100,17 +104,17 @@ public class WorkflowOrchestrator {
                         default -> WorkflowStatus.FAILED;
                     };
 
-                    finishIfRunning(id, terminal);
+                    finishIfRunning(id, terminal,lease);
                     return result(id, followUps, analysis, review);
                 }
 
                 requireRunning(id);
-                checkDeadline(id);
+                checkDeadline(id,lease);
 
                 analysis = rootCause.execute(id, investigation);
 
                 requireRunning(id);
-                checkDeadline(id);
+                checkDeadline(id,lease);
 
                 // This provider must enforce investigation-scoped
                 // provenance and load actual source excerpts.
@@ -126,7 +130,7 @@ public class WorkflowOrchestrator {
                         || !investigation.evidenceIds().containsAll(citedIds)) {
 
                     finishIfRunning(
-                            id, WorkflowStatus.INSUFFICIENT_EVIDENCE);
+                            id, WorkflowStatus.INSUFFICIENT_EVIDENCE,lease);
 
                     return result(id, followUps, analysis, review);
                 }
@@ -139,7 +143,7 @@ public class WorkflowOrchestrator {
                 // Missing sources cannot justify approval.
                 if (excerpts == null || excerpts.isEmpty()) {
                     finishIfRunning(
-                            id, WorkflowStatus.INSUFFICIENT_EVIDENCE);
+                            id, WorkflowStatus.INSUFFICIENT_EVIDENCE,lease);
                     return result(id, followUps, analysis, review);
                 }
                 var loadedIds = excerpts.stream()
@@ -148,7 +152,7 @@ public class WorkflowOrchestrator {
 
                 if (!loadedIds.containsAll(citedIds)) {
                     finishIfRunning(
-                            id, WorkflowStatus.INSUFFICIENT_EVIDENCE);
+                            id, WorkflowStatus.INSUFFICIENT_EVIDENCE,lease);
 
                     return result(id, followUps, analysis, review);
                 }
@@ -156,12 +160,12 @@ public class WorkflowOrchestrator {
                 review = reviewer.execute(id, analysis, excerpts);
 
                 requireRunning(id);
-                checkDeadline(id);
+                checkDeadline(id,lease);
 
                 switch (review.decision()) {
                     case ACCEPT -> {
                         workflows.finishWorkflow(
-                                id, WorkflowStatus.COMPLETED);
+                                id, WorkflowStatus.COMPLETED,lease);
                         return result(id, followUps, analysis, review);
                     }
 
@@ -170,7 +174,8 @@ public class WorkflowOrchestrator {
                                 || review.unresolvedQuestions().isEmpty()) {
                             workflows.finishWorkflow(
                                     id,
-                                    WorkflowStatus.INSUFFICIENT_EVIDENCE
+                                    WorkflowStatus.INSUFFICIENT_EVIDENCE,
+                                    lease
                             );
                             return result(id, followUps, analysis, review);
                         }
@@ -180,13 +185,14 @@ public class WorkflowOrchestrator {
                                 review.unresolvedQuestions()
                         );
 
-                        checkDeadline(id);
+                        checkDeadline(id,lease);
 
                         // Database enforces at most one follow-up.
-                        if (!workflows.reserveFollowUp(id)) {
+                        if (!workflows.reserveFollowUp(id,lease)) {
                             workflows.finishWorkflow(
                                     id,
-                                    WorkflowStatus.INSUFFICIENT_EVIDENCE
+                                    WorkflowStatus.INSUFFICIENT_EVIDENCE,
+                                    lease
                             );
                             return result(id, followUps, analysis, review);
                         }
@@ -200,14 +206,15 @@ public class WorkflowOrchestrator {
                     case INSUFFICIENT_EVIDENCE, REJECT -> {
                         workflows.finishWorkflow(
                                 id,
-                                WorkflowStatus.INSUFFICIENT_EVIDENCE);
+                                WorkflowStatus.INSUFFICIENT_EVIDENCE,
+                                lease);
                         return result(id, followUps, analysis, review);
                     }
                 }
             }
 
             finishIfRunning(
-                    id, WorkflowStatus.INSUFFICIENT_EVIDENCE);
+                    id, WorkflowStatus.INSUFFICIENT_EVIDENCE,lease);
 
         } catch (RuntimeException ex) {
 
@@ -222,7 +229,7 @@ public class WorkflowOrchestrator {
                                     ? WorkflowStatus.TIMED_OUT
                                     : WorkflowStatus.FAILED;
 
-                    workflows.finishWorkflow(id, status);
+                    workflows.finishWorkflow(id, status,lease);
                 }
                 // If an agent step remains active, leave it
                 // for the dedicated recovery mechanism.
@@ -245,11 +252,11 @@ public class WorkflowOrchestrator {
         }
     }
 
-    private void checkDeadline(UUID workflowId) {
+    private void checkDeadline(UUID workflowId, WorkflowLease lease) {
         var run = workflows.get(workflowId);
 
         if (deadlineExceeded(run.startedAt())) {
-            finishIfRunning(workflowId, WorkflowStatus.TIMED_OUT);
+            finishIfRunning(workflowId, WorkflowStatus.TIMED_OUT, lease);
             throw new IllegalStateException(
                     "Workflow deadline exceeded");
         }
@@ -266,13 +273,13 @@ public class WorkflowOrchestrator {
     }
 
     private void finishIfRunning(
-            UUID workflowId, WorkflowStatus desired) {
+            UUID workflowId, WorkflowStatus desired, WorkflowLease lease) {
 
         var run = workflows.get(workflowId);
 
         if (!run.status().isTerminal()
                 && run.currentRole() == null) {
-            workflows.finishWorkflow(workflowId, desired);
+            workflows.finishWorkflow(workflowId, desired,lease);
         }
     }
 

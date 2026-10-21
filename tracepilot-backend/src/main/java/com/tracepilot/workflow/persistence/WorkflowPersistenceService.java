@@ -16,6 +16,7 @@ import org.springframework.transaction.annotation.Transactional;
 import java.time.Instant;
 import java.time.Duration;
 import java.util.List;
+import java.util.Objects;
 import java.util.UUID;
 import java.time.OffsetDateTime;
 import java.time.ZoneOffset;
@@ -362,22 +363,34 @@ public class WorkflowPersistenceService {
     }
 
     @Transactional
-    public boolean reserveFollowUp(UUID workflowId) {
+    public boolean reserveFollowUp(
+            UUID workflowId,
+            WorkflowLease lease) {
+
+        Objects.requireNonNull(lease);
+
+        if (!workflowId.equals(lease.workflowId())) {
+            throw new IllegalArgumentException(
+                    "Lease belongs to another workflow");
+        }
+
         int changed = jdbc.sql("""
-        UPDATE workflow_runs
-        SET follow_ups_used = follow_ups_used + 1,
-            version = version + 1
-        WHERE id = :id
-          AND status = 'RUNNING'
-          AND active_agent_role IS NULL
-          AND follow_ups_used < 1
-          AND started_at >
-              clock_timestamp() - INTERVAL '4 minutes'
-          AND execution_owner = :owner
-          AND fencing_token = :token
-          AND lease_expires_at > clock_timestamp()
-        """)
+            UPDATE workflow_runs
+            SET follow_ups_used = follow_ups_used + 1,
+                version = version + 1
+            WHERE id = :id
+              AND status = 'RUNNING'
+              AND active_agent_role IS NULL
+              AND follow_ups_used < 1
+              AND started_at >
+                  clock_timestamp() - INTERVAL '4 minutes'
+              AND execution_owner = :owner
+              AND fencing_token = :token
+              AND lease_expires_at > clock_timestamp()
+            """)
                 .param("id", workflowId)
+                .param("owner", lease.ownerId())
+                .param("token", lease.fencingToken())
                 .update();
 
         return changed == 1;

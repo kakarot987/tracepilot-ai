@@ -7,6 +7,8 @@ import com.tracepilot.investigation.domain.InvestigationStatus;
 import com.tracepilot.investigation.service.InvestigationService;
 import com.tracepilot.workflow.domain.AgentRole;
 import com.tracepilot.workflow.domain.WorkflowStatus;
+import com.tracepilot.workflow.domain.WorkflowStepStatus;
+import com.tracepilot.workflow.persistence.WorkflowLease;
 import com.tracepilot.workflow.persistence.WorkflowPersistenceService;
 import com.tracepilot.workflow.persistence.WorkflowRunRecord;
 import com.tracepilot.workflow.persistence.WorkflowStepRecord;
@@ -19,6 +21,7 @@ import java.util.List;
 import java.util.UUID;
 
 import static org.junit.jupiter.api.Assertions.*;
+import static org.mockito.ArgumentMatchers.*;
 import static org.mockito.Mockito.*;
 
 class InvestigatorWorkflowServiceTest {
@@ -28,9 +31,10 @@ class InvestigatorWorkflowServiceTest {
     private WorkflowPersistenceService workflows;
     private InvestigatorWorkflowService service;
 
-    private final UUID workflowId = UUID.randomUUID();
-    private final UUID stepId = UUID.randomUUID();
-    private final UUID investigationId = UUID.randomUUID();
+    private UUID workflowId;
+    private UUID stepId;
+    private UUID investigationId;
+    private WorkflowLease lease;
 
     @BeforeEach
     void setUp() {
@@ -39,7 +43,21 @@ class InvestigatorWorkflowServiceTest {
         workflows = mock(WorkflowPersistenceService.class);
 
         service = new InvestigatorWorkflowService(
-                investigator, investigations, workflows
+                investigator,
+                investigations,
+                workflows
+
+        );
+
+        workflowId = UUID.randomUUID();
+        stepId = UUID.randomUUID();
+        investigationId = UUID.randomUUID();
+
+        lease = new WorkflowLease(
+                workflowId,
+                UUID.randomUUID(),
+                1L,
+                Instant.now().plusSeconds(60)
         );
 
         when(workflows.get(workflowId))
@@ -48,21 +66,30 @@ class InvestigatorWorkflowServiceTest {
                         "INC-DB-001",
                         WorkflowStatus.RUNNING,
                         null,
-                        1, 0, 1L,
+                        1,
+                        0,
+                        1L,
                         Instant.now(),
-                        null, null
+                        null,
+                        null
                 ));
 
         when(workflows.beginStep(
-                workflowId, AgentRole.INVESTIGATOR))
-                .thenReturn(new WorkflowStepRecord(
-                        stepId, workflowId, 2,
-                        AgentRole.INVESTIGATOR,
-                        com.tracepilot.workflow.domain
-                                .WorkflowStepStatus.RUNNING,
-                        Instant.now(),
-                        null, null, null, null
-                ));
+                workflowId,
+                AgentRole.INVESTIGATOR,
+                lease
+        )).thenReturn(new WorkflowStepRecord(
+                stepId,
+                workflowId,
+                2,
+                AgentRole.INVESTIGATOR,
+                WorkflowStepStatus.RUNNING,
+                Instant.now(),
+                null,
+                null,
+                null,
+                null
+        ));
     }
 
     @Test
@@ -79,11 +106,21 @@ class InvestigatorWorkflowServiceTest {
         when(investigations.evidence(investigationId))
                 .thenReturn(List.of());
 
-        var result = service.execute(workflowId);
+        var result = service.execute(
+                workflowId,
+                null,
+                lease
+        );
 
         assertEquals(
                 InvestigationStatus.COMPLETED,
                 result.status()
+        );
+
+        verify(workflows).beginStep(
+                workflowId,
+                AgentRole.INVESTIGATOR,
+                lease
         );
 
         verify(workflows).completeStepWithOutput(
@@ -91,14 +128,16 @@ class InvestigatorWorkflowServiceTest {
                 eq(AgentRole.INVESTIGATOR),
                 contains("Investigation completed"),
                 eq(result),
-                eq(investigationId)
+                eq(investigationId),
+                eq(lease)
         );
 
         verify(workflows, never()).finishWorkflow(
-                any(), any()
+                any(),
+                any(),
+                any()
         );
     }
-
 
     @Test
     void leavesWorkflowOpenWhenEvidenceInsufficient() {
@@ -114,7 +153,11 @@ class InvestigatorWorkflowServiceTest {
         when(investigations.evidence(investigationId))
                 .thenReturn(List.of());
 
-        var result = service.execute(workflowId);
+        var result = service.execute(
+                workflowId,
+                null,
+                lease
+        );
 
         assertEquals(
                 InvestigationStatus.INSUFFICIENT_EVIDENCE,
@@ -126,11 +169,14 @@ class InvestigatorWorkflowServiceTest {
                 eq(AgentRole.INVESTIGATOR),
                 contains("Insufficient evidence"),
                 eq(result),
-                eq(investigationId)
+                eq(investigationId),
+                eq(lease)
         );
 
         verify(workflows, never()).finishWorkflow(
-                any(), any()
+                any(),
+                any(),
+                any()
         );
     }
 
@@ -148,12 +194,36 @@ class InvestigatorWorkflowServiceTest {
         when(investigations.evidence(investigationId))
                 .thenReturn(List.of());
 
-        service.execute(workflowId);
+        var result = service.execute(
+                workflowId,
+                null,
+                lease
+        );
+
+        assertEquals(
+                InvestigationStatus.TIMED_OUT,
+                result.status()
+        );
 
         verify(workflows).failStep(
-                stepId, "INVESTIGATION_TIMEOUT");
+                stepId,
+                "INVESTIGATION_TIMEOUT",
+                lease
+        );
 
         verify(workflows).finishWorkflow(
-                workflowId, WorkflowStatus.TIMED_OUT);
+                workflowId,
+                WorkflowStatus.TIMED_OUT,
+                lease
+        );
+
+        verify(workflows, never()).completeStepWithOutput(
+                any(),
+                any(),
+                anyString(),
+                any(),
+                any(),
+                any()
+        );
     }
 }

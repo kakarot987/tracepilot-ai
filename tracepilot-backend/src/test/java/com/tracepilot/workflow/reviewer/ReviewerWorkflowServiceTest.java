@@ -5,6 +5,7 @@ import com.tracepilot.workflow.domain.AgentRole;
 import com.tracepilot.workflow.domain.Hypothesis;
 import com.tracepilot.workflow.domain.WorkflowStatus;
 import com.tracepilot.workflow.domain.WorkflowStepStatus;
+import com.tracepilot.workflow.persistence.WorkflowLeaseService;
 import com.tracepilot.workflow.persistence.WorkflowPersistenceService;
 import com.tracepilot.workflow.persistence.WorkflowRunRecord;
 import com.tracepilot.workflow.persistence.WorkflowStepRecord;
@@ -26,6 +27,7 @@ class ReviewerWorkflowServiceTest {
     private ReviewerAgent reviewer;
     private WorkflowPersistenceService workflows;
     private ReviewerWorkflowService service;
+    private WorkflowLeaseService leases;
 
     private UUID workflowId;
     private UUID stepId;
@@ -34,10 +36,12 @@ class ReviewerWorkflowServiceTest {
     void setUp() {
         reviewer = mock(ReviewerAgent.class);
         workflows = mock(WorkflowPersistenceService.class);
+        leases = mock(WorkflowLeaseService.class);
 
         service = new ReviewerWorkflowService(
                 reviewer,
-                workflows
+                workflows,
+                leases
         );
 
         workflowId = UUID.randomUUID();
@@ -59,7 +63,10 @@ class ReviewerWorkflowServiceTest {
 
         when(workflows.beginStep(
                 workflowId,
-                AgentRole.REVIEWER
+                AgentRole.REVIEWER,
+                leases.acquire(
+                        workflowId, UUID.randomUUID()
+                ).orElseThrow()
         )).thenReturn(new WorkflowStepRecord(
                 stepId,
                 workflowId,
@@ -121,19 +128,24 @@ class ReviewerWorkflowServiceTest {
         assertEquals(ReviewDecision.ACCEPT,
                 actual.decision());
 
+        var lease = leases.acquire(
+                workflowId, UUID.randomUUID()
+        ).orElseThrow();
+
         verify(workflows).beginStep(
-                workflowId, AgentRole.REVIEWER);
+                workflowId, AgentRole.REVIEWER, lease);
 
         verify(workflows).completeStepWithOutput(
                 eq(stepId),
                 eq(AgentRole.REVIEWER),
                 contains("ACCEPT"),
                 any(ReviewerResult.class),
-                isNull()
+                isNull(),
+                eq(lease)
         );
 
         verify(workflows, never()).finishWorkflow(
-                any(), any());
+                any(), any(), any());
     }
 
     @Test
@@ -167,11 +179,14 @@ class ReviewerWorkflowServiceTest {
                 eq(AgentRole.REVIEWER),
                 contains("FOLLOW_UP"),
                 any(ReviewerResult.class),
-                isNull()
+                isNull(),
+                leases.acquire(
+                        workflowId, UUID.randomUUID()
+                ).orElseThrow()
         );
 
         verify(workflows, never()).finishWorkflow(
-                any(), any());
+                any(), any(), any());
     }
 
     @Test
@@ -206,10 +221,14 @@ class ReviewerWorkflowServiceTest {
         );
 
         verify(workflows).failStep(
-                stepId, "REVIEWER_FAILED");
+                stepId, "REVIEWER_FAILED", leases.acquire(
+                        workflowId, UUID.randomUUID()
+                ).orElseThrow());
 
         verify(workflows).finishWorkflow(
-                workflowId, WorkflowStatus.FAILED);
+                workflowId, WorkflowStatus.FAILED, leases.acquire(
+                        workflowId, UUID.randomUUID()
+                ).orElseThrow());
     }
 
     @Test
@@ -238,7 +257,7 @@ class ReviewerWorkflowServiceTest {
         );
 
         verify(workflows, never()).beginStep(
-                any(), any());
+                any(), any(), any());
         verifyNoInteractions(reviewer);
     }
 }

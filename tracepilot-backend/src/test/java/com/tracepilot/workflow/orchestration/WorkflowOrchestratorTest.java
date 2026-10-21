@@ -32,6 +32,7 @@ class WorkflowOrchestratorTest {
     private WorkflowOrchestrator orchestrator;
     private UUID workflowId;
     private WorkflowRunRecord running;
+    private WorkflowLeaseService leases;
 
     @BeforeEach
     void setUp() {
@@ -41,10 +42,12 @@ class WorkflowOrchestratorTest {
         rootCause = mock(RootCauseWorkflowService.class);
         reviewer = mock(ReviewerWorkflowService.class);
         evidenceProvider = mock(ReviewEvidenceProvider.class);
+        leases = mock(WorkflowLeaseService.class);
 
         orchestrator = new WorkflowOrchestrator(
                 workflows, triage, investigator,
-                rootCause, reviewer, evidenceProvider
+                rootCause, reviewer, evidenceProvider,
+                leases
         );
 
         workflowId = UUID.randomUUID();
@@ -95,7 +98,10 @@ class WorkflowOrchestratorTest {
 
         verify(workflows).finishWorkflow(
                 workflowId,
-                WorkflowStatus.INSUFFICIENT_EVIDENCE
+                WorkflowStatus.INSUFFICIENT_EVIDENCE,
+                leases.acquire(
+                        workflowId, UUID.randomUUID()
+                ).orElseThrow()
         );
 
         verifyNoInteractions(rootCause);

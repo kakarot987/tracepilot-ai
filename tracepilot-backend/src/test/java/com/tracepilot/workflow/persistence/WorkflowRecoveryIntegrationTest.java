@@ -19,6 +19,7 @@ import java.time.Instant;
 import java.time.OffsetDateTime;
 import java.time.ZoneOffset;
 import java.util.Map;
+import java.util.UUID;
 
 import static org.junit.jupiter.api.Assertions.*;
 
@@ -37,6 +38,9 @@ class WorkflowRecoveryIntegrationTest {
 
     @Autowired
     private JdbcClient jdbc;
+
+    @Autowired
+    private WorkflowLeaseService leases;
 
     private void expireWorkflow(
             java.util.UUID workflowId) {
@@ -62,9 +66,14 @@ class WorkflowRecoveryIntegrationTest {
 
         var run = workflows.start("INC-DB-001");
 
+        var lease = leases.acquire(
+                run.id(), UUID.randomUUID()
+        ).orElseThrow();
+
         var step = workflows.beginStep(
                 run.id(),
-                AgentRole.INVESTIGATOR
+                AgentRole.INVESTIGATOR,
+                lease
         );
 
         expireWorkflow(run.id());
@@ -126,9 +135,14 @@ class WorkflowRecoveryIntegrationTest {
 
         var run = workflows.start("INC-MEM-001");
 
+        var lease = leases.acquire(
+                run.id(), UUID.randomUUID()
+        ).orElseThrow();
+
         var step = workflows.beginStep(
                 run.id(),
-                AgentRole.REVIEWER
+                AgentRole.REVIEWER,
+                lease
         );
 
         expireWorkflow(run.id());
@@ -140,7 +154,8 @@ class WorkflowRecoveryIntegrationTest {
                         AgentRole.REVIEWER,
                         "Late accepted result",
                         Map.of("decision", "ACCEPT"),
-                        null
+                        null,
+                        lease
                 )
         );
 
@@ -163,14 +178,17 @@ class WorkflowRecoveryIntegrationTest {
     void rejectsNewStepAfterDeadline() {
 
         var run = workflows.start("INC-RATE-001");
-
+        var lease = leases.acquire(
+                run.id(), UUID.randomUUID()
+        ).orElseThrow();
         expireWorkflow(run.id());
 
         assertThrows(
                 IllegalStateException.class,
                 () -> workflows.beginStep(
                         run.id(),
-                        AgentRole.TRIAGE
+                        AgentRole.TRIAGE,
+                        lease
                 )
         );
     }

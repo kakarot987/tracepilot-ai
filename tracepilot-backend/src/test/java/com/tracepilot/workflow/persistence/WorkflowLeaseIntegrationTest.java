@@ -138,7 +138,11 @@ class WorkflowLeaseIntegrationTest {
         var workflow = workflows.start("INC-PAY-001");
 
         workflows.finishWorkflow(
-                workflow.id(), WorkflowStatus.CANCELLED
+                workflow.id(), WorkflowStatus.CANCELLED,
+                leases.acquire(
+                        workflow.id(),
+                        UUID.randomUUID()
+                ).orElseThrow()
         );
 
         assertTrue(

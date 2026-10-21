@@ -4,6 +4,8 @@ package com.tracepilot.workflow.reviewer;
 import com.tracepilot.workflow.domain.AgentRole;
 import com.tracepilot.workflow.domain.WorkflowStatus;
 import com.tracepilot.workflow.domain.WorkflowStepStatus;
+import com.tracepilot.workflow.persistence.WorkflowLease;
+import com.tracepilot.workflow.persistence.WorkflowLeaseService;
 import com.tracepilot.workflow.rootcause.RootCauseResult;
 import com.tracepilot.workflow.persistence.WorkflowPersistenceService;
 
@@ -20,12 +22,16 @@ public class ReviewerWorkflowService {
 
     private final ReviewerAgent reviewer;
     private final WorkflowPersistenceService workflows;
+    private final WorkflowLeaseService leases;
 
     public ReviewerWorkflowService(
             ReviewerAgent reviewer,
-            WorkflowPersistenceService workflows) {
+            WorkflowPersistenceService workflows,
+            WorkflowLeaseService leases) {
         this.reviewer = Objects.requireNonNull(reviewer);
         this.workflows = Objects.requireNonNull(workflows);
+        this.leases = Objects.requireNonNull(leases);
+
     }
 
     public ReviewerResult execute(
@@ -34,6 +40,12 @@ public class ReviewerWorkflowService {
             List<EvidenceExcerpt> evidence) {
 
         var workflow = workflows.get(workflowId);
+        WorkflowLease lease = leases.acquire(
+                workflow.id(),
+                UUID.randomUUID()
+        ).orElseThrow(() ->
+                new IllegalStateException(
+                        "Workflow is already owned"));
 
         if (workflow.status() != WorkflowStatus.RUNNING) {
             throw new IllegalStateException(
@@ -41,7 +53,7 @@ public class ReviewerWorkflowService {
         }
 
         var step = workflows.beginStep(
-                workflowId, AgentRole.REVIEWER);
+                workflowId, AgentRole.REVIEWER, lease);
 
         try {
             ReviewerResult result =
@@ -60,7 +72,8 @@ public class ReviewerWorkflowService {
                     AgentRole.REVIEWER,
                     summary,
                     result,
-                    null
+                    null,
+                    lease
             );
 
             // Do not finalize here.
@@ -73,10 +86,10 @@ public class ReviewerWorkflowService {
 
                 if (current.status() == WorkflowStepStatus.RUNNING) {
                     workflows.failStep(
-                            step.id(), "REVIEWER_FAILED");
+                            step.id(), "REVIEWER_FAILED", lease);
 
                     workflows.finishWorkflow(
-                            workflowId, WorkflowStatus.FAILED);
+                            workflowId, WorkflowStatus.FAILED, lease);
                 }
             } catch (RuntimeException cleanupFailure) {
                 ex.addSuppressed(cleanupFailure);
