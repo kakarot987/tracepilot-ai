@@ -149,4 +149,158 @@ class WorkflowOrchestratorTest {
 
         verify(leases, times(1)).release(lease);
     }
+
+    @Test
+    void completesWorkflowWhenReviewerAcceptsEvidence() {
+
+        UUID investigationId = UUID.randomUUID();
+
+        var investigation = new InvestigatorStepResult(
+                investigationId,
+                InvestigationStatus.COMPLETED,
+                "Database connection pool exhausted",
+                List.of("LOG-DB-001"),
+                3
+        );
+
+        var hypothesis = new com.tracepilot.workflow.domain.Hypothesis(
+                "Database connections were exhausted",
+                List.of("LOG-DB-001"),
+                List.of(),
+                "HIGH"
+        );
+
+        var analysis = new RootCauseResult(
+                List.of(hypothesis),
+                List.of(),
+                true
+        );
+
+        var excerpt = new EvidenceExcerpt(
+                "LOG-DB-001",
+                "LOG",
+                "Connection pool reached maximum capacity"
+        );
+
+        var review = new ReviewerResult(
+                ReviewDecision.ACCEPT,
+                List.of(new ClaimReview(
+                        0,
+                        true,
+                        List.of("LOG-DB-001"),
+                        "Evidence supports connection pool exhaustion"
+                )),
+                List.of(),
+                "Root cause is supported by incident evidence"
+        );
+
+        when(investigator.execute(workflowId, lease))
+                .thenReturn(investigation);
+
+        when(rootCause.execute(
+                workflowId,
+                investigation,
+                lease
+        )).thenReturn(analysis);
+
+        when(evidenceProvider.load(
+                investigationId,
+                List.of("LOG-DB-001")
+        )).thenReturn(List.of(excerpt));
+
+        when(reviewer.execute(
+                workflowId,
+                analysis,
+                List.of(excerpt),
+                lease
+        )).thenReturn(review);
+
+        // Simulate persistence reflecting the terminal state
+        // after the orchestrator finishes the workflow.
+        doAnswer(invocation -> {
+
+            var completed = new WorkflowRunRecord(
+                    workflowId,
+                    "INC-DB-001",
+                    WorkflowStatus.COMPLETED,
+                    null,
+                    4,
+                    0,
+                    5L,
+                    running.startedAt(),
+                    Instant.now(),
+                    null
+            );
+
+            when(workflows.get(workflowId))
+                    .thenReturn(completed);
+
+            return null;
+
+        }).when(workflows).finishWorkflow(
+                workflowId,
+                WorkflowStatus.COMPLETED,
+                lease
+        );
+
+        var result = orchestrator.execute("INC-DB-001");
+
+        assertEquals(
+                WorkflowStatus.COMPLETED,
+                result.status()
+        );
+
+        assertEquals(workflowId, result.workflowId());
+        assertEquals(0, result.followUpsUsed());
+        assertEquals(analysis, result.rootCause());
+        assertEquals(review, result.review());
+
+        var order = inOrder(
+                triage,
+                investigator,
+                rootCause,
+                evidenceProvider,
+                reviewer
+        );
+
+        order.verify(triage).execute(workflowId, lease);
+
+        order.verify(investigator)
+                .execute(workflowId, lease);
+
+        order.verify(rootCause).execute(
+                workflowId,
+                investigation,
+                lease
+        );
+
+        order.verify(evidenceProvider).load(
+                investigationId,
+                List.of("LOG-DB-001")
+        );
+
+        order.verify(reviewer).execute(
+                workflowId,
+                analysis,
+                List.of(excerpt),
+                lease
+        );
+
+        verify(workflows).finishWorkflow(
+                workflowId,
+                WorkflowStatus.COMPLETED,
+                lease
+        );
+
+        verify(heartbeats).start(lease);
+        verify(heartbeat, atLeastOnce()).assertHealthy();
+        verify(heartbeat).close();
+        verify(leases, times(1)).release(lease);
+
+        verify(workflows, never()).reserveFollowUp(
+                any(UUID.class),
+                any(WorkflowLease.class)
+        );
+    }
+
 }
