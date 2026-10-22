@@ -48,4 +48,24 @@ public class InvestigationApiExceptionHandler {
                         "message", "Invalid resource identifier"
                 ));
     }
+
+
+    @ExceptionHandler(
+            com.tracepilot.investigation.domain
+                    .InvestigationLimitExceededException.class
+    )
+    public ResponseEntity<Map<String, String>>
+    handleInvestigationTimeout(
+            com.tracepilot.investigation.domain
+                    .InvestigationLimitExceededException ex) {
+
+        return ResponseEntity
+                .status(HttpStatus.GATEWAY_TIMEOUT)
+                .body(Map.of(
+                        "error", "AGENT_DEADLINE_EXCEEDED",
+                        "message",
+                        "Agent execution exceeded its configured limit"
+                ));
+    }
+
 }

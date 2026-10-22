@@ -21,7 +21,7 @@ import java.util.Objects;
 public class TriageAgent {
 
     private static final Duration TRIAGE_DEADLINE =
-            Duration.ofSeconds(25);
+            Duration.ofSeconds(45);
 
     private static final String SYSTEM_PROMPT = """
             You are TracePilot's incident Triage Agent.

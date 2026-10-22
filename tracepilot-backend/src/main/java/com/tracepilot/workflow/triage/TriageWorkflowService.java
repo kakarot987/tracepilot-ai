@@ -65,18 +65,48 @@ public class TriageWorkflowService {
 
             return result;
 
-        } catch (RuntimeException ex) {
-            // The LLM failure is recorded separately
-            // from the agent's execution transaction.
-            workflows.failStep(step.id(), "TRIAGE_FAILED", lease);
 
-            // For Step 3, terminate the unsuccessful run.
-            // Future orchestrator handles finer error mapping.
-            workflows.finishWorkflow(
-                    workflowId,
-                    com.tracepilot.workflow.domain.WorkflowStatus.FAILED,
-                    lease
-            );
+        } catch (RuntimeException ex) {
+
+            boolean timedOut =
+                    ex instanceof
+                            com.tracepilot.investigation.domain
+                                    .InvestigationLimitExceededException
+                            || "Triage deadline exceeded".equals(
+                            ex.getMessage());
+
+            String errorCode = timedOut
+                    ? "TRIAGE_TIMEOUT"
+                    : "TRIAGE_FAILED";
+
+            var terminalStatus = timedOut
+                    ? com.tracepilot.workflow.domain
+                    .WorkflowStatus.TIMED_OUT
+                    : com.tracepilot.workflow.domain
+                    .WorkflowStatus.FAILED;
+
+            try {
+                var current = workflows.getStep(step.id());
+
+                if (current.status()
+                        == com.tracepilot.workflow.domain
+                        .WorkflowStepStatus.RUNNING) {
+
+                    workflows.failStep(
+                            step.id(),
+                            errorCode,
+                            lease
+                    );
+
+                    workflows.finishWorkflow(
+                            workflowId,
+                            terminalStatus,
+                            lease
+                    );
+                }
+            } catch (RuntimeException cleanupFailure) {
+                ex.addSuppressed(cleanupFailure);
+            }
 
             throw ex;
         }

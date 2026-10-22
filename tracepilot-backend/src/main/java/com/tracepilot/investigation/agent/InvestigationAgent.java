@@ -268,12 +268,16 @@ public class InvestigationAgent {
                 status = InvestigationStatus.FAILED;
             }
 
-            log.error(
-                    "Investigation failed; runId={}, " +
-                            "incidentId={}, exceptionType={}",
+            log.warn(
+                    "Investigation ended; runId={}, incidentId={}, "
+                            + "status={}, toolCallsUsed={}, timedOut={}, "
+                            + "exceptionType={}",
                     run.id(),
                     incident.id(),
-                    ex.getClass().getName()
+                    status,
+                    budget.toolCallsUsed(),
+                    budget.isExpired(),
+                    ex.getClass().getSimpleName()
             );
 
             log.debug(

@@ -13,6 +13,8 @@ import org.springframework.ai.model.tool.ToolCallingManager;
 import org.springframework.ai.tool.ToolCallback;
 
 import org.springframework.stereotype.Component;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 import java.util.List;
 import java.util.Objects;
@@ -24,6 +26,8 @@ public class BoundedModelRunner {
 
     private final ChatModel model;
     private final ToolCallingManager toolCallingManager;
+    private static final Logger log =
+            LoggerFactory.getLogger(BoundedModelRunner.class);
 
     public BoundedModelRunner(
             ChatModel model,
@@ -47,6 +51,7 @@ public class BoundedModelRunner {
         var options = OllamaChatOptions.builder()
                 .model("qwen3:4b")
                 .temperature(0.2)
+                .numPredict(512)
                 .toolCallbacks(callbacks)
                 .build();
 
@@ -66,49 +71,96 @@ public class BoundedModelRunner {
              * ChatModel does not automatically execute tools
              * in Spring AI 2.x.
              */
-            var response = model.call(prompt);
+            long modelStart = System.nanoTime();
 
-            checkDeadline(budget);
+            try {
+                var response = model.call(prompt);
 
-            if (response == null) {
-                throw new IllegalStateException(
-                        "Model returned no response"
+                long modelDurationMs =
+                        java.util.concurrent.TimeUnit.NANOSECONDS
+                                .toMillis(System.nanoTime() - modelStart);
+
+                log.info(
+                        "Model turn completed; turn={}, durationMs={}, "
+                                + "toolCallsUsed={}, remainingToolCalls={}",
+                        turn + 1,
+                        modelDurationMs,
+                        budget.toolCallsUsed(),
+                        budget.remainingToolCalls()
                 );
-            }
 
-            if (!response.hasToolCalls()) {
-                var output = response.getResult();
+                checkDeadline(budget);
 
-                if (output == null
-                        || output.getOutput() == null) {
-                    return "";
-                }
+                // Keep the existing response validation and
+                // tool-calling logic here.
 
-                String content =
-                        output.getOutput().getText();
-
-                return content == null ? "" : content;
-            }
-
-            if (turn == MAX_MODEL_REQUESTS - 1) {
-                throw new InvestigationLimitExceededException(
-                        "Maximum model requests exceeded"
-                );
-            }
-
-            checkDeadline(budget);
-
-            var toolResult =
-                    toolCallingManager.executeToolCalls(
-                            prompt, response
+                if (response == null) {
+                    throw new IllegalStateException(
+                            "Model returned no response"
                     );
+                }
+                if (!response.hasToolCalls()) {
+                    var output = response.getResult();
 
-            checkDeadline(budget);
+                    if (output == null
+                            || output.getOutput() == null) {
+                        return "";
+                    }
 
-            prompt = new Prompt(
-                    toolResult.conversationHistory(),
-                    options
-            );
+                    String content =
+                            output.getOutput().getText();
+
+                    return content == null ? "" : content;
+                }
+                if (turn == MAX_MODEL_REQUESTS - 1) {
+                    throw new InvestigationLimitExceededException(
+                            "Maximum model requests exceeded"
+                    );
+                }
+                checkDeadline(budget);
+
+
+                long toolStart = System.nanoTime();
+
+                var toolResult =
+                        toolCallingManager.executeToolCalls(
+                                prompt, response
+                        );
+
+                long toolDurationMs =
+                        java.util.concurrent.TimeUnit.NANOSECONDS
+                                .toMillis(
+                                        System.nanoTime() - toolStart
+                                );
+
+                log.info(
+                        "Tool round completed; turn={}, durationMs={}, "
+                                + "toolCallsUsed={}, remainingToolCalls={}",
+                        turn + 1,
+                        toolDurationMs,
+                        budget.toolCallsUsed(),
+                        budget.remainingToolCalls()
+                );
+
+                checkDeadline(budget);
+
+                prompt = new Prompt(
+                        toolResult.conversationHistory(),
+                        options
+                );
+
+            } catch (RuntimeException ex) {
+                log.warn(
+                        "Model turn failed; turn={}, durationMs={}, "
+                                + "exceptionType={}",
+                        turn + 1,
+                        java.util.concurrent.TimeUnit.NANOSECONDS
+                                .toMillis(System.nanoTime() - modelStart),
+                        ex.getClass().getSimpleName()
+                );
+
+                throw ex;
+            }
         }
 
         throw new InvestigationLimitExceededException(
