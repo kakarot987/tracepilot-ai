@@ -91,6 +91,8 @@ export const api = {
     }),
   workflowSteps: (id: string) =>
     request<WorkflowStep[]>('/workflows/' + encodeURIComponent(id) + '/steps'),
+  stepOutputById: (workflowId: string, stepId: string) =>
+    request<WorkflowStepOutput>('/workflows/' + encodeURIComponent(workflowId) + '/steps/' + encodeURIComponent(stepId) + '/output'),
   stepOutput: (workflowId: string, role: WorkflowStep['agentRole']) =>
     request<WorkflowStepOutput>('/workflows/' + encodeURIComponent(workflowId) + '/outputs/' + role),
   evidence: (investigationId: string) =>
