@@ -305,4 +305,57 @@ class WorkflowOrchestratorTest {
         );
     }
 
+    @Test
+    void followUpWithOnlyPreviouslySeenEvidenceStopsBeforeAnotherRootCause() {
+        var firstId = UUID.randomUUID();
+        var secondId = UUID.randomUUID();
+        var original = new InvestigatorStepResult(
+                firstId, InvestigationStatus.COMPLETED,
+                "Connection timeout [LOG-DB-003]",
+                List.of("LOG-DB-003"), 1);
+        var repeated = new InvestigatorStepResult(
+                secondId, InvestigationStatus.COMPLETED,
+                "Same connection timeout [LOG-DB-003]",
+                List.of("LOG-DB-003"), 1);
+        var hypothesis = new com.tracepilot.workflow.domain.Hypothesis(
+                "Database connection acquisition timed out",
+                List.of("LOG-DB-003"), List.of(), "LOW");
+        var analysis = new RootCauseResult(
+                List.of(hypothesis), List.of("What caused it?"), false);
+        var excerpt = new EvidenceExcerpt(
+                "LOG-DB-003", "LOG", "Unable to acquire JDBC connection");
+        var followUpReview = new ReviewerResult(
+                ReviewDecision.FOLLOW_UP,
+                List.of(new ClaimReview(0, false, List.of("LOG-DB-003"),
+                        "Cause unproven")),
+                List.of("What caused connection saturation?"),
+                "Need independent operational evidence");
+
+        when(investigator.execute(workflowId, lease)).thenReturn(original);
+        when(investigator.execute(
+                eq(workflowId), any(FollowUpFocus.class), eq(lease)))
+                .thenReturn(repeated);
+        when(rootCause.execute(workflowId, original, lease))
+                .thenReturn(analysis);
+        when(evidenceProvider.load(firstId, List.of("LOG-DB-003")))
+                .thenReturn(List.of(excerpt));
+        when(reviewer.execute(workflowId, analysis, List.of(excerpt), lease))
+                .thenReturn(followUpReview);
+        when(workflows.reserveFollowUp(workflowId, lease))
+                .thenReturn(true);
+
+        orchestrator.execute("INC-DB-001");
+
+        verify(investigator).execute(
+                eq(workflowId), any(FollowUpFocus.class), eq(lease));
+        verify(rootCause, times(1)).execute(
+                any(UUID.class), any(InvestigatorStepResult.class),
+                eq(lease));
+        verify(reviewer, times(1)).execute(
+                any(UUID.class), any(RootCauseResult.class),
+                anyList(), eq(lease));
+        verify(workflows).finishWorkflow(
+                workflowId, WorkflowStatus.INSUFFICIENT_EVIDENCE, lease);
+    }
+
 }
