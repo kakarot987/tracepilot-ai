@@ -338,4 +338,31 @@ class InvestigationAgentRegressionTest {
         assertTrue(recorded.stream().noneMatch(ref ->
                 ref.evidenceId().equals("LOG-FAKE-999")));
     }
+    @Test
+    void fallsBackToDeploymentsWhenLogsAndServiceMetadataAreEmpty() {
+        seedDeployment();
+
+        AgentExecution result = agent.investigate(INCIDENT_ID, null, 8);
+
+        assertEquals(InvestigationStatus.INSUFFICIENT_EVIDENCE,
+                result.status());
+        // The default model draft cites a log that was not retrieved.
+        // The fallback must still have persisted the deployment evidence.
+        assertTrue(recorded.stream().anyMatch(ref ->
+                ref.evidenceId().equals("DEP-DB-001")));
+        verify(deployments).get(any());
+        assertEquals(3, result.toolCallsUsed());
+    }
+
+    @Test
+    void noEvidenceAcrossAllSourcesAbstainsWithoutInvokingModel() {
+        AgentExecution result = agent.investigate(INCIDENT_ID, null, 8);
+
+        assertEquals(InvestigationStatus.INSUFFICIENT_EVIDENCE,
+                result.status());
+        assertTrue(recorded.isEmpty());
+        assertEquals(5, result.toolCallsUsed());
+        verifyNoInteractions(runner);
+    }
+
 }
