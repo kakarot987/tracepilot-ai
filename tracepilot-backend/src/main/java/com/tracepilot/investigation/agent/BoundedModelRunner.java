@@ -36,24 +36,66 @@ public class BoundedModelRunner {
         this.toolCallingManager =
                 Objects.requireNonNull(toolCallingManager);
     }
-
     public String run(
             String systemInstruction,
             String incidentPrompt,
             List<ToolCallback> callbacks,
             InvestigationBudget budget) {
 
+        return run(
+                systemInstruction,
+                incidentPrompt,
+                callbacks,
+                budget,
+                false
+        );
+    }
+
+    public String run(
+            String systemInstruction,
+            String incidentPrompt,
+            List<ToolCallback> callbacks,
+            InvestigationBudget budget,
+            boolean disableThinking) {
+
+        return run(
+                systemInstruction,
+                incidentPrompt,
+                callbacks,
+                budget,
+                disableThinking,
+                false
+        );
+    }
+
+    public String run(
+            String systemInstruction,
+            String incidentPrompt,
+            List<ToolCallback> callbacks,
+            InvestigationBudget budget,
+            boolean disableThinking,
+            boolean jsonMode) {
+
         Objects.requireNonNull(systemInstruction);
         Objects.requireNonNull(incidentPrompt);
         Objects.requireNonNull(callbacks);
         Objects.requireNonNull(budget);
 
-        var options = OllamaChatOptions.builder()
+        var optionsBuilder = OllamaChatOptions.builder()
                 .model("qwen3:4b")
                 .temperature(0.2)
                 .numPredict(512)
-                .toolCallbacks(callbacks)
-                .build();
+                .toolCallbacks(callbacks);
+
+        if (disableThinking) {
+            optionsBuilder.disableThinking();
+        }
+
+        if (jsonMode) {
+            optionsBuilder.format("json");
+        }
+
+        var options = optionsBuilder.build();
 
         Prompt prompt = new Prompt(
                 List.of(
@@ -81,7 +123,7 @@ public class BoundedModelRunner {
                                 .toMillis(System.nanoTime() - modelStart);
 
                 log.info(
-                        "Model turn completed; turn={}, durationMs={}, "
+                        "Model call returned; turn={}, durationMs={}, "
                                 + "toolCallsUsed={}, remainingToolCalls={}",
                         turn + 1,
                         modelDurationMs,

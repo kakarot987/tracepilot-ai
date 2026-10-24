@@ -116,4 +116,51 @@ class BoundedModelRunnerTest {
 
         verifyNoInteractions(model, manager);
     }
+
+    @Test
+    void rejectsModelResponseThatArrivesAfterDeadline() {
+
+        var budget = new InvestigationBudget(
+                1,
+                Duration.ofMillis(30)
+        );
+
+        ChatResponse response = mock(ChatResponse.class);
+
+        when(response.hasToolCalls()).thenReturn(false);
+
+        when(model.call(
+                any(org.springframework.ai.chat.prompt.Prompt.class)
+        )).thenAnswer(invocation -> {
+
+            // Simulate a synchronous model request that
+            // completes only after the investigation deadline.
+            Thread.sleep(100);
+
+            return response;
+        });
+
+        var exception = assertThrows(
+                InvestigationLimitExceededException.class,
+                () -> runner().run(
+                        "System instructions",
+                        "Classify database incident",
+                        List.of(),
+                        budget
+                )
+        );
+
+        assertEquals(
+                "Investigation deadline exceeded",
+                exception.getMessage()
+        );
+
+        verify(model, times(1)).call(
+                any(org.springframework.ai.chat.prompt.Prompt.class)
+        );
+
+        // A late model result must not trigger tool execution.
+        verifyNoInteractions(manager);
+    }
+
 }

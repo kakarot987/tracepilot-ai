@@ -36,6 +36,7 @@ class WorkflowOrchestratorTest {
     private WorkflowLease lease;
     private WorkflowHeartbeatService heartbeats;
     private WorkflowHeartbeatService.Heartbeat heartbeat;
+    private WorkflowExecutionStarter starter;
 
     @BeforeEach
     void setUp() {
@@ -48,7 +49,7 @@ class WorkflowOrchestratorTest {
         evidenceProvider = mock(ReviewEvidenceProvider.class);
         leases = mock(WorkflowLeaseService.class);
         heartbeats = mock(WorkflowHeartbeatService.class);
-
+        starter = mock(WorkflowExecutionStarter.class);
         // Initialize IDs before creating the lease.
         workflowId = UUID.randomUUID();
 
@@ -109,7 +110,8 @@ class WorkflowOrchestratorTest {
                 reviewer,
                 evidenceProvider,
                 leases,
-                heartbeats
+                heartbeats,
+                starter
         );
     }
 

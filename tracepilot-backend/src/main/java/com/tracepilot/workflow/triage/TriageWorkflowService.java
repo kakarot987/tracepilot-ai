@@ -19,7 +19,10 @@ public class TriageWorkflowService {
     private final IncidentRepository incidents;
     private final TriageAgent triageAgent;
     private final WorkflowPersistenceService workflows;
-
+    private static final org.slf4j.Logger log =
+            org.slf4j.LoggerFactory.getLogger(
+                    TriageWorkflowService.class
+            );
     public TriageWorkflowService(
             IncidentRepository incidents,
             TriageAgent triageAgent,
@@ -67,7 +70,12 @@ public class TriageWorkflowService {
 
 
         } catch (RuntimeException ex) {
-
+            log.error(
+                    "Triage failed; workflowId={}, exceptionType={}",
+                    workflowId,
+                    ex.getClass().getName(),
+                    ex
+            );
             boolean timedOut =
                     ex instanceof
                             com.tracepilot.investigation.domain

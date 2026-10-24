@@ -3,6 +3,7 @@ package com.tracepilot.investigation.api;
 
 import com.tracepilot.investigation.service.InvestigationConflictException;
 
+import com.tracepilot.workflow.domain.AgentOutputValidationException;
 import org.springframework.context.annotation.Profile;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
@@ -68,4 +69,16 @@ public class InvestigationApiExceptionHandler {
                 ));
     }
 
+    @ExceptionHandler(AgentOutputValidationException.class)
+    public ResponseEntity<Map<String, String>> invalidAgentOutput(
+            AgentOutputValidationException ex) {
+
+        return ResponseEntity
+                .status(HttpStatus.BAD_GATEWAY)
+                .body(Map.of(
+                        "error", "INVALID_AGENT_OUTPUT",
+                        "message",
+                        "The AI model returned an invalid response"
+                ));
+    }
 }

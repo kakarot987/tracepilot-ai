@@ -44,6 +44,7 @@ public class WorkflowOrchestrator {
             org.slf4j.LoggerFactory.getLogger(
                     WorkflowOrchestrator.class);
     private final WorkflowHeartbeatService heartbeats;
+    private final WorkflowExecutionStarter starter;
 
     public WorkflowOrchestrator(
             WorkflowPersistenceService workflows,
@@ -53,7 +54,8 @@ public class WorkflowOrchestrator {
             ReviewerWorkflowService reviewer,
             ReviewEvidenceProvider evidenceProvider,
             WorkflowLeaseService leases,
-            WorkflowHeartbeatService heartbeats) {
+            WorkflowHeartbeatService heartbeats,
+            WorkflowExecutionStarter starter) {
 
         this.workflows = Objects.requireNonNull(workflows);
         this.triage = Objects.requireNonNull(triage);
@@ -64,18 +66,13 @@ public class WorkflowOrchestrator {
                 Objects.requireNonNull(evidenceProvider);
         this.leases = Objects.requireNonNull(leases);
         this.heartbeats = Objects.requireNonNull(heartbeats);
+        this.starter = Objects.requireNonNull(starter);
     }
 
     public WorkflowExecutionResult execute(String incidentId) {
 
-        var workflow = workflows.start(incidentId);
-        WorkflowLease lease = leases.acquire(
-                workflow.id(),
-                UUID.randomUUID()
-        ).orElseThrow(() ->
-                new IllegalStateException(
-                        "Workflow is already owned"));
-        UUID id = workflow.id();
+        WorkflowLease lease = starter.start(incidentId);
+        UUID id = lease.workflowId();
 
         int followUps = 0;
         RootCauseResult analysis = null;

@@ -5,6 +5,7 @@ import com.tracepilot.incident.domain.Incident;
 import com.tracepilot.investigation.agent.BoundedModelRunner;
 import com.tracepilot.investigation.domain.InvestigationBudget;
 
+import com.tracepilot.workflow.domain.AgentOutputValidationException;
 import org.springframework.context.annotation.Profile;
 import org.springframework.stereotype.Service;
 import tools.jackson.databind.JsonNode;
@@ -22,7 +23,8 @@ public class TriageAgent {
 
     private static final Duration TRIAGE_DEADLINE =
             Duration.ofSeconds(45);
-
+    private static final org.slf4j.Logger log =
+            org.slf4j.LoggerFactory.getLogger(TriageAgent.class);
     private static final String SYSTEM_PROMPT = """
             You are TracePilot's incident Triage Agent.
 
@@ -95,14 +97,20 @@ public class TriageAgent {
                 SYSTEM_PROMPT,
                 prompt,
                 List.of(),
-                budget
+                budget,
+                true,   // Disable thinking
+                true    // Enforce JSON mode
         );
 
         if (budget.isExpired()) {
             throw new IllegalStateException(
                     "Triage deadline exceeded");
         }
-
+        log.info(
+                "Triage response received; length={}, blank={}",
+                response == null ? -1 : response.length(),
+                response == null || response.isBlank()
+        );
         return parse(response);
     }
 
@@ -110,8 +118,9 @@ public class TriageAgent {
         if (response == null
                 || response.isBlank()
                 || response.length() > 8000) {
-            throw new IllegalArgumentException(
-                    "Invalid triage response");
+            throw new AgentOutputValidationException(
+                    "Invalid triage response"
+            );
         }
 
         try {
@@ -160,10 +169,14 @@ public class TriageAgent {
                     parsed
             );
 
-        } catch (tools.jackson.core.JacksonException ex) {
-        throw new IllegalArgumentException(
-                "Malformed triage JSON", ex);
-    }
+        } catch (AgentOutputValidationException ex) {
+            throw ex;
+        } catch (tools.jackson.core.JacksonException
+                 | IllegalArgumentException ex) {
+            throw new AgentOutputValidationException(
+                    "Invalid triage output", ex
+            );
+        }
     }
 
     private String requiredText(
