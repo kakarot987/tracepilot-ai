@@ -90,6 +90,25 @@ public class WorkflowController {
         );
     }
 
+    @GetMapping("/workflows/{workflowId}/steps/{stepId}/output")
+    public ResponseEntity<WorkflowStepOutput> stepOutput(
+            @PathVariable UUID workflowId,
+            @PathVariable UUID stepId) {
+
+        if (lookupWorkflow(workflowId).isEmpty()) {
+            return ResponseEntity.notFound().build();
+        }
+
+        // Reject step IDs that belong to a different workflow.
+        boolean owned = workflows.trace(workflowId).stream()
+                .anyMatch(step -> step.id().equals(stepId));
+        if (!owned) {
+            return ResponseEntity.notFound().build();
+        }
+
+        return ResponseEntity.of(workflows.output(stepId));
+    }
+
     private Optional<WorkflowRunRecord> lookupWorkflow(
             UUID workflowId) {
 
