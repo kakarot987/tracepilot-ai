@@ -97,17 +97,23 @@ Note: TracePilot validates that an investigation's cited evidence identifiers we
 
 ## Milestone 4 — Controlled multi-agent orchestration (Week 4)
 
-- [ ] Define explicit roles: **Triage**, **Investigator**, **Root Cause**, and **Reviewer**.
-- [ ] Define typed shared state: incident ID, gathered evidence, hypotheses, open questions, and workflow status.
-- [ ] Implement an orchestrator with a clear sequence and conditional branches.
-- [ ] Have the Reviewer verify that major claims reference evidence IDs.
-- [ ] Permit a bounded follow-up investigation when evidence is insufficient.
-- [ ] Prevent infinite loops with limits on steps, reassignments, token usage, and runtime.
-- [ ] Persist intermediate steps and statuses for debugging and UI display.
-- [ ] Keep agents on one shared local model initially; **do not** load four separate model instances.
-- [ ] Compare one-agent and multi-agent output on the same test cases to see if complexity helps.
+- [x] Define explicit roles: **Triage**, **Investigator**, **Root Cause**, and **Reviewer**.
+- [x] Define typed shared state: incident ID, gathered evidence, hypotheses, open questions, and workflow status.
+- [x] Implement an orchestrator with a clear sequence and conditional branches.
+- [x] Have the Reviewer verify evidence IDs and inspect authorized evidence excerpts (not a guarantee of semantic truth).
+- [x] Permit at most one bounded Reviewer-requested follow-up investigation.
+- [x] Enforce step, tool, model request, lease, and cooperative runtime limits; document that synchronous model requests are not hard-cancelled.
+- [x] Persist intermediate steps, structured handoffs, evidence references, and statuses.
+- [x] Use one shared local Ollama model for agent roles.
+- [x] Commit single-agent versus multi-agent measurements for the same four seeded incidents; results are **not** conclusive root-cause successes.
+- [x] Demonstrate all four roles and one follow-up in a live, persisted trace: workflow `bfc65394-1ee6-47a6-8204-586763be8456`, seven completed steps, three cited `LOG-DB-00*` IDs, final `INSUFFICIENT_EVIDENCE`.
+- [ ] Demonstrate one justified live Reviewer `ACCEPT` conclusion grounded in verified operational evidence.
+- [ ] Test focused follow-up retrieval on genuinely new evidence and add regression coverage for the deterministic log callback path.
+- [ ] Confirm the latest full Maven/PostgreSQL suite passes and rerun the comparative benchmark after the evidence-first implementation.
 
-**Exit criteria:** One investigation executes multiple distinct agent roles with traceable, bounded behavior.
+**Status (2026-10-24):** Four-role orchestration and bounded follow-up are **live-demonstrated**, with safe abstention when logs show JDBC acquisition delays but do not establish their underlying cause. See [Milestone 4 results](evaluations/milestone-4-results.md). Do not count seven completed steps as a conclusive root-cause diagnosis.
+
+**Exit criteria:** Narrow traceable/bounded four-role execution criterion demonstrated. Reviewer-requested stronger criterion—evidence-backed accepted conclusion—remains open pending further evidence and tests.
 
 ## Milestone 5 — Full-stack dashboard (Week 5)
 
@@ -178,7 +184,8 @@ Note: TracePilot validates that an investigation's cited evidence identifiers we
 | 2026-10-16 | 0–1 | Re-audited Milestone 0: README, ignore file, Maven and scope confirmed. Developer confirms RAM/VRAM verification; no values published | Add license and optional GitHub milestone issues |
 | 2026-10-19 | 2 | `feature/milestone-2` merged into `main`; source review complete and Maven/PostgreSQL/live Ollama checks confirmed by developer | Begin Milestone 3 RAG and pgvector; license and issue housekeeping remain |
 | 2026-10-19 | 3 | `feature/milestone-3` merged into `main`; runbook RAG, pgvector, embedding versioning, agent citations, and retrieval evaluation recorded | Begin Milestone 4 controlled multi-agent orchestration |
+| 2026-10-24 | 4 | Live Triage → Investigator → Root Cause → Reviewer with one follow-up; seven persisted completed steps, operational log references and safe insufficient-evidence termination | Validate follow-up retrieval, latest full tests and one justified Reviewer ACCEPT |
 
 ---
 
-**Current next action:** Create `feature/milestone-4` and implement controlled Triage → Investigator → Root Cause → Reviewer orchestration with typed shared state, evidence-linked hypotheses, bounded follow-up, persisted execution traces, and one shared local model. Preserve read-only tools and cooperative timeout semantics. Milestone 0 license/GitHub Issues and optional hardware benchmark documentation remain housekeeping items. See [ChatGPT collaboration workflow](docs/CHATGPT_COLLABORATION.md).
+**Current next action:** Complete the remaining Milestone 4 acceptance verification: targeted follow-up evidence retrieval, deterministic callback-path regression tests, a verified Reviewer-accepted example, latest full tests and updated performance comparison. See [Milestone 4 results](evaluations/milestone-4-results.md). Milestone 0 license/GitHub Issues and optional hardware benchmark notes remain housekeeping items.

@@ -3,6 +3,7 @@ package com.tracepilot.investigation.api;
 
 import com.tracepilot.investigation.service.InvestigationConflictException;
 
+import com.tracepilot.workflow.domain.AgentOutputValidationException;
 import org.springframework.context.annotation.Profile;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
@@ -46,6 +47,38 @@ public class InvestigationApiExceptionHandler {
                 .body(Map.of(
                         "error", "INVALID_PATH_PARAMETER",
                         "message", "Invalid resource identifier"
+                ));
+    }
+
+
+    @ExceptionHandler(
+            com.tracepilot.investigation.domain
+                    .InvestigationLimitExceededException.class
+    )
+    public ResponseEntity<Map<String, String>>
+    handleInvestigationTimeout(
+            com.tracepilot.investigation.domain
+                    .InvestigationLimitExceededException ex) {
+
+        return ResponseEntity
+                .status(HttpStatus.GATEWAY_TIMEOUT)
+                .body(Map.of(
+                        "error", "AGENT_DEADLINE_EXCEEDED",
+                        "message",
+                        "Agent execution exceeded its configured limit"
+                ));
+    }
+
+    @ExceptionHandler(AgentOutputValidationException.class)
+    public ResponseEntity<Map<String, String>> invalidAgentOutput(
+            AgentOutputValidationException ex) {
+
+        return ResponseEntity
+                .status(HttpStatus.BAD_GATEWAY)
+                .body(Map.of(
+                        "error", "INVALID_AGENT_OUTPUT",
+                        "message",
+                        "The AI model returned an invalid response"
                 ));
     }
 }
