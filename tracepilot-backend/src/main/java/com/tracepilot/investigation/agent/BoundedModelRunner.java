@@ -96,7 +96,23 @@ public class BoundedModelRunner {
         }
 
         var options = optionsBuilder.build();
+        for (ToolCallback callback : callbacks) {
+            var definition = callback.getToolDefinition();
 
+            log.info(
+                    "Registered tool; name={}, schemaLength={}",
+                    definition.name(),
+                    definition.inputSchema() == null
+                            ? 0
+                            : definition.inputSchema().length()
+            );
+        }
+        log.info(
+                "Model options; toolCount={}, jsonMode={}, thinkingDisabled={}",
+                callbacks.size(),
+                jsonMode,
+                disableThinking
+        );
         Prompt prompt = new Prompt(
                 List.of(
                         new SystemMessage(systemInstruction),
@@ -117,6 +133,26 @@ public class BoundedModelRunner {
 
             try {
                 var response = model.call(prompt);
+                var generation = response == null
+                        ? null
+                        : response.getResult();
+
+                var assistant = generation == null
+                        ? null
+                        : generation.getOutput();
+
+                String text = assistant == null
+                        ? null
+                        : assistant.getText();
+
+                log.info(
+                        "Model response; turn={}, callbacks={}, "
+                                + "hasToolCalls={}, textLength={}",
+                        turn + 1,
+                        callbacks.size(),
+                        response != null && response.hasToolCalls(),
+                        text == null ? -1 : text.length()
+                );
 
                 long modelDurationMs =
                         java.util.concurrent.TimeUnit.NANOSECONDS
@@ -141,6 +177,45 @@ public class BoundedModelRunner {
                             "Model returned no response"
                     );
                 }
+
+                if (turn == 0
+                        && !callbacks.isEmpty()
+                        && !response.hasToolCalls()) {
+
+                    log.warn(
+                            "No tool call on first model turn; "
+                                    + "retrying with evidence-first instruction"
+                    );
+
+                    prompt = new Prompt(
+                            List.of(
+                                    new SystemMessage(
+                                            systemInstruction + """
+
+                            
+                            IMPORTANT INVESTIGATION RULE:
+                            Before producing any investigation analysis,
+                            call an available read-only tool to obtain
+                            actual incident evidence.
+
+                            Begin with searchLogs or getServiceInfo,
+                            using valid arguments for this incident.
+
+                            Do not describe a hypothetical tool call.
+                            Issue an actual structured tool call.
+
+                            If you cannot issue a tool call, do not
+                            invent evidence or a root cause.
+                            """
+                                    ),
+                                    new UserMessage(incidentPrompt)
+                            ),
+                            options
+                    );
+
+                    continue;
+                }
+
                 if (!response.hasToolCalls()) {
                     var output = response.getResult();
 

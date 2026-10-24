@@ -10,6 +10,7 @@ import com.tracepilot.tools.deployments.GetRecentDeploymentsTool;
 import com.tracepilot.tools.history.GetIncidentHistoryTool;
 
 import org.junit.jupiter.api.Test;
+import org.springframework.ai.tool.ToolCallback;
 
 import java.time.Duration;
 import java.util.Set;
@@ -53,5 +54,45 @@ class InvestigationToolCallbackFactoryTest {
         ), names);
 
         assertEquals(5, callbacks.size());
+    }
+
+    @Test
+    void registersExactlyFiveReadOnlyToolsUniqueName() {
+        var factory = new InvestigationToolCallbackFactory(
+                new InvestigationToolExecutor(),
+                mock(SearchLogsTool.class),
+                mock(GetServiceInfoTool.class),
+                mock(GetRecentDeploymentsTool.class),
+                mock(GetIncidentHistoryTool.class),
+                mock(RunbookSearchService.class)
+        );
+
+        var callbacks = factory.create(
+                "INC-PAY-001",
+                new InvestigationBudget(
+                        8, Duration.ofMinutes(1)
+                )
+        );
+
+        var definitions = callbacks.stream()
+                .map(ToolCallback::getToolDefinition)
+                .toList();
+
+        assertEquals(5, definitions.size());
+
+        assertEquals(
+                5,
+                definitions.stream()
+                        .map(definition -> definition.name())
+                        .distinct()
+                        .count()
+        );
+
+        assertTrue(
+                definitions.stream().allMatch(
+                        definition -> definition.inputSchema() != null
+                                && !definition.inputSchema().isBlank()
+                )
+        );
     }
 }

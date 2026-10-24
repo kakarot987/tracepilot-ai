@@ -163,4 +163,70 @@ class BoundedModelRunnerTest {
         verifyNoInteractions(manager);
     }
 
+    @Test
+    void retriesOnceWhenInvestigatorReturnsNoToolCalls() {
+
+        ChatResponse response = mock(ChatResponse.class);
+
+        when(response.hasToolCalls()).thenReturn(false);
+
+        when(model.call(
+                any(org.springframework.ai.chat.prompt.Prompt.class)
+        )).thenReturn(response);
+
+        var callback = mock(
+                org.springframework.ai.tool.ToolCallback.class
+        );
+
+        var result = runner().run(
+                "Investigate using read-only tools",
+                "Incident ID: INC-DB-001",
+                List.of(callback),
+                new InvestigationBudget(
+                        8,
+                        Duration.ofSeconds(30)
+                ),
+                true,
+                false
+        );
+
+        assertEquals("", result);
+
+        // One original request and one evidence-first retry.
+        verify(model, times(2)).call(
+                any(org.springframework.ai.chat.prompt.Prompt.class)
+        );
+
+        // The model never requested a real tool call.
+        verifyNoInteractions(manager);
+    }
+    @Test
+    void doesNotRetryWhenNoToolsAreAvailable() {
+
+        ChatResponse response = mock(ChatResponse.class);
+
+        when(response.hasToolCalls()).thenReturn(false);
+
+        when(model.call(
+                any(org.springframework.ai.chat.prompt.Prompt.class)
+        )).thenReturn(response);
+
+        runner().run(
+                "Classify the incident",
+                "Incident ID: INC-DB-001",
+                List.of(),
+                new InvestigationBudget(
+                        1,
+                        Duration.ofSeconds(30)
+                ),
+                true,
+                true
+        );
+
+        verify(model, times(1)).call(
+                any(org.springframework.ai.chat.prompt.Prompt.class)
+        );
+
+        verifyNoInteractions(manager);
+    }
 }

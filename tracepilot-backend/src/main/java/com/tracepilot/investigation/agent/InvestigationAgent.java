@@ -189,7 +189,9 @@ public class InvestigationAgent {
                     SYSTEM_PROMPT,
                     buildIncidentPrompt(incident, focus),
                     callbacks,
-                    budget
+                    budget,
+                    true,   // Disable thinking
+                    false   // Do not enable JSON mode
             );
 
             // The model may have returned after its deadline.
