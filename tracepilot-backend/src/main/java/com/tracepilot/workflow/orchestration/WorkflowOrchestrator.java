@@ -78,6 +78,7 @@ public class WorkflowOrchestrator {
         RootCauseResult analysis = null;
         ReviewerResult review = null;
         FollowUpFocus nextFocus = null;
+        java.util.Set<String> previousEvidenceIds = java.util.Set.of();
 
         try(var heartbeat = heartbeats.start(lease)) {
             checkDeadline(id,lease);
@@ -114,6 +115,23 @@ public class WorkflowOrchestrator {
 
                 requireRunning(id);
                 checkDeadline(id,lease);
+
+                if (pass > 0) {
+                    var newlyRetrievedIds = new java.util.HashSet<>(
+                            investigation.evidenceIds()
+                    );
+                    newlyRetrievedIds.removeAll(previousEvidenceIds);
+                    if (newlyRetrievedIds.isEmpty()) {
+                        // A second pass that only rediscovered prior evidence
+                        // cannot resolve a Reviewer-identified evidence gap.
+                        finishIfRunning(
+                                id, WorkflowStatus.INSUFFICIENT_EVIDENCE, lease);
+                        return result(id, followUps, analysis, review);
+                    }
+                }
+                previousEvidenceIds = new java.util.HashSet<>(
+                        investigation.evidenceIds()
+                );
 
                 analysis = rootCause.execute(id, investigation, lease);
                 heartbeat.assertHealthy();
