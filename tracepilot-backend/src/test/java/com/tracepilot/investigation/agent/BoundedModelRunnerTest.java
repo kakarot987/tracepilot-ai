@@ -322,4 +322,41 @@ class BoundedModelRunnerTest {
         return callback;
     }
 
+    @Test
+    void removesToolDefinitionsAfterFinalBudgetedCall() {
+        var budget = new InvestigationBudget(1, Duration.ofSeconds(30));
+        ChatResponse toolResponse = mock(ChatResponse.class);
+        ChatResponse finalResponse = mock(ChatResponse.class);
+        ToolExecutionResult toolResult = mock(ToolExecutionResult.class);
+
+        when(toolResponse.hasToolCalls()).thenReturn(true);
+        when(finalResponse.hasToolCalls()).thenReturn(false);
+        when(model.call(any(org.springframework.ai.chat.prompt.Prompt.class)))
+                .thenReturn(toolResponse, finalResponse);
+        when(manager.executeToolCalls(
+                any(org.springframework.ai.chat.prompt.Prompt.class),
+                eq(toolResponse)
+        )).thenAnswer(invocation -> {
+            budget.claimToolCall();
+            return toolResult;
+        });
+        when(toolResult.conversationHistory()).thenReturn(List.of(
+                new org.springframework.ai.chat.messages.UserMessage("Done")
+        ));
+
+        runner().run("Investigate", "Evidence needed",
+                List.of(mockToolCallback()), budget, true, false);
+
+        var prompts = org.mockito.ArgumentCaptor.forClass(
+                org.springframework.ai.chat.prompt.Prompt.class);
+        verify(model, times(2)).call(prompts.capture());
+        var initial = (org.springframework.ai.ollama.api.OllamaChatOptions)
+                prompts.getAllValues().get(0).getOptions();
+        var afterLastTool = (org.springframework.ai.ollama.api.OllamaChatOptions)
+                prompts.getAllValues().get(1).getOptions();
+        assertEquals(1, initial.getToolCallbacks().size());
+        assertTrue(afterLastTool.getToolCallbacks().isEmpty());
+        verify(manager, times(1)).executeToolCalls(any(), eq(toolResponse));
+    }
+
 }
