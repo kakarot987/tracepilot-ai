@@ -280,6 +280,43 @@ public class InvestigationAgent {
                         .append(result);
             }
 
+            // If the primary source yielded nothing, inspect other
+            // authorized read-only sources before abstaining. Every call
+            // passes through the existing per-investigation budget.
+            if (investigations.evidence(run.id()).isEmpty()) {
+                if (budget.remainingToolCalls() > 0) {
+                    String result = requireTool(
+                            callbacks, "getRecentDeployments"
+                    ).call("""
+                            {"from":"%s","to":"%s","limit":10}
+                            """.formatted(
+                            incident.occurredAt().minus(Duration.ofDays(7)),
+                            incident.occurredAt()
+                    ));
+                    collected.append("\ngetRecentDeployments:\n").append(result);
+                }
+                if (investigations.evidence(run.id()).isEmpty()
+                        && budget.remainingToolCalls() > 0) {
+                    String result = requireTool(
+                            callbacks, "getIncidentHistory"
+                    ).call("{\"limit\":5}");
+                    collected.append("\ngetIncidentHistory:\n").append(result);
+                }
+                if (investigations.evidence(run.id()).isEmpty()
+                        && budget.remainingToolCalls() > 0) {
+                    String result = requireTool(
+                            callbacks, "searchRunbooks"
+                    ).call("""
+                            {"query":"%s","limit":3}
+                            """.formatted(
+                            incident.title().replace("\\", " ")
+                                    .replace("\"", " ")
+                                    .replace("\n", " ")
+                    ));
+                    collected.append("\nsearchRunbooks:\n").append(result);
+                }
+            }
+
 // 4. Never derive permitted IDs from model-written text.
             var evidenceIds = investigations.evidence(run.id())
                     .stream()
