@@ -1,6 +1,6 @@
 # Evaluation Plan
 
-> **Status: Test strategy only; no evaluation runs or measured results are claimed.**
+> **Status (2026-10-24):** Evaluation plan plus developer-run baseline measurements and a live seven-step demonstration. See [Milestone 4 results](../evaluations/milestone-4-results.md). HTTP success and completed agent steps must not be confused with proven root-cause accuracy.
 
 ## Questions to answer
 
@@ -51,6 +51,9 @@ No numerical targets are represented as achieved results.
 
 | Date | Git commit | Model | Dataset count | Root-cause accuracy | Citation validity | p50/p95 latency | Notes |
 | --- | --- | --- | --- | --- | --- | --- | --- |
-| Pending | Pending | Pending | Pending | Not measured | Not measured | Not measured | No implementation results yet |
+| 2026-10-24 | `feature/milestone-4` (exact run SHA not captured) | `qwen3:4b` | 4 incidents × 2 modes | 0 conclusive outcomes / 8 attempts | Substantive claim validation not measured | HTTP request medians: 9,225 ms single / 10,482.5 ms multi; p95 not measured | All 8 HTTP 200; all ended insufficient evidence; see committed CSV |
+| 2026-10-24 | `feature/milestone-4` (exact run SHA not captured) | `qwen3:4b` | 1 live workflow, separate from comparison | No accepted diagnosis | Three persisted `LOG-DB-*` IDs reported; semantic support not scored | 7 per-step durations recorded; total API latency not captured | One bounded follow-up, all four roles, final `INSUFFICIENT_EVIDENCE`; workflow `bfc65394-1ee6-47a6-8204-586763be8456` |
+
+For outcomes, limitations, source workflow ID and live step timings, see [Milestone 4 results](../evaluations/milestone-4-results.md) and [the comparison CSV](../evaluations/milestone-4-comparison.csv). The live run was developer-reported; the eight-row CSV was inspected in the repository. Neither establishes an accurate accepted root cause.
 
 See [Architecture](ARCHITECTURE.md) and [MVP Scope](MVP_SCOPE.md).
