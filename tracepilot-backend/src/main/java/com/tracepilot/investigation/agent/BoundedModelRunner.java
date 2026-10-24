@@ -95,6 +95,11 @@ public class BoundedModelRunner {
             optionsBuilder.format("json");
         }
 
+        // A direct evidence-gathering step may already have exhausted the
+        // shared budget before the first model request.
+        if (budget.remainingToolCalls() == 0) {
+            optionsBuilder.toolCallbacks(List.of());
+        }
         var options = optionsBuilder.build();
         for (ToolCallback callback : callbacks) {
             var definition = callback.getToolDefinition();
@@ -230,6 +235,11 @@ public class BoundedModelRunner {
 
                     return content == null ? "" : content;
                 }
+                if (budget.remainingToolCalls() == 0) {
+                    throw new InvestigationLimitExceededException(
+                            "Model requested a tool after the tool budget was exhausted"
+                    );
+                }
                 if (turn == MAX_MODEL_REQUESTS - 1) {
                     throw new InvestigationLimitExceededException(
                             "Maximum model requests exceeded"
@@ -262,9 +272,27 @@ public class BoundedModelRunner {
 
                 checkDeadline(budget);
 
+                // The round may have consumed the last available tool call.
+                // The next model response must be a final answer, not another
+                // request made with stale, executable tool definitions.
+                var nextOptions = options;
+                if (budget.remainingToolCalls() == 0) {
+                    var finalOptionsBuilder = OllamaChatOptions.builder()
+                            .model("qwen3:4b")
+                            .temperature(0.2)
+                            .numPredict(512)
+                            .toolCallbacks(List.of());
+                    if (disableThinking) {
+                        finalOptionsBuilder.disableThinking();
+                    }
+                    if (jsonMode) {
+                        finalOptionsBuilder.format("json");
+                    }
+                    nextOptions = finalOptionsBuilder.build();
+                }
                 prompt = new Prompt(
                         toolResult.conversationHistory(),
-                        options
+                        nextOptions
                 );
 
             } catch (RuntimeException ex) {
