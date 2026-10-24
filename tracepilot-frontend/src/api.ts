@@ -19,10 +19,47 @@ export interface WorkflowExecution {
   workflowId: string
   status: WorkflowStatus
   followUpsUsed: number
-  rootCause: unknown | null
-  review: unknown | null
+  rootCause: RootCauseResult | null
+  review: ReviewerResult | null
 }
 
+export interface Hypothesis {
+  description: string
+  supportingEvidenceIds: string[]
+  contradictingEvidenceIds: string[]
+  confidence: 'LOW' | 'MEDIUM' | 'HIGH' | 'UNKNOWN'
+}
+export interface RootCauseResult {
+  hypotheses: Hypothesis[]
+  openQuestions: string[]
+  sufficientEvidence: boolean
+}
+export interface ClaimReview {
+  hypothesisIndex: number
+  supported: boolean
+  evidenceIds: string[]
+  explanation: string
+}
+export interface ReviewerResult {
+  decision: 'ACCEPT' | 'FOLLOW_UP' | 'REJECT' | 'INSUFFICIENT_EVIDENCE'
+  claimReviews: ClaimReview[]
+  unresolvedQuestions: string[]
+  rationale: string
+}
+export interface WorkflowStepOutput {
+  stepId: string
+  workflowId: string
+  agentRole: WorkflowStep['agentRole']
+  schemaVersion: number
+  json: string
+  investigationRunId: string | null
+}
+export interface EvidenceReference {
+  investigationId: string
+  evidenceId: string
+  evidenceType: string
+  recordedAt: string
+}
 export interface WorkflowStep {
   id: string
   workflowId: string
@@ -54,4 +91,8 @@ export const api = {
     }),
   workflowSteps: (id: string) =>
     request<WorkflowStep[]>('/workflows/' + encodeURIComponent(id) + '/steps'),
+  stepOutput: (workflowId: string, role: WorkflowStep['agentRole']) =>
+    request<WorkflowStepOutput>('/workflows/' + encodeURIComponent(workflowId) + '/outputs/' + role),
+  evidence: (investigationId: string) =>
+    request<EvidenceReference[]>('/investigations/' + encodeURIComponent(investigationId) + '/evidence'),
 }
