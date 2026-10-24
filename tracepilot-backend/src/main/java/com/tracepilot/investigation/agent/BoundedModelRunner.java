@@ -180,6 +180,7 @@ public class BoundedModelRunner {
 
                 if (turn == 0
                         && !callbacks.isEmpty()
+                        && budget.toolCallsUsed() == 0
                         && !response.hasToolCalls()) {
 
                     log.warn(
