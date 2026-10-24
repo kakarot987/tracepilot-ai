@@ -229,4 +229,68 @@ class BoundedModelRunnerTest {
 
         verifyNoInteractions(manager);
     }
+
+    @Test
+    void executesStructuredToolCallWhenModelRequestsIt() {
+
+        ChatResponse toolCallResponse =
+                mock(ChatResponse.class);
+
+        ChatResponse finalResponse =
+                mock(ChatResponse.class);
+
+        ToolExecutionResult toolResult =
+                mock(ToolExecutionResult.class);
+
+        when(toolCallResponse.hasToolCalls())
+                .thenReturn(true);
+
+        when(finalResponse.hasToolCalls())
+                .thenReturn(false);
+
+        when(model.call(any(
+                org.springframework.ai.chat.prompt.Prompt.class
+        ))).thenReturn(
+                toolCallResponse,
+                finalResponse
+        );
+
+        when(manager.executeToolCalls(
+                any(org.springframework.ai.chat.prompt.Prompt.class),
+                eq(toolCallResponse)
+        )).thenReturn(toolResult);
+
+        when(toolResult.conversationHistory())
+                .thenReturn(List.of(
+                        new org.springframework.ai.chat.messages.UserMessage(
+                                "Tool result available"
+                        )
+                ));
+
+        var callback = mock(
+                org.springframework.ai.tool.ToolCallback.class
+        );
+
+        runner().run(
+                "Investigate using authorized tools",
+                "Investigate INC-DB-001",
+                List.of(callback),
+                new InvestigationBudget(
+                        8,
+                        Duration.ofSeconds(30)
+                ),
+                true,
+                false
+        );
+
+        verify(manager, times(1)).executeToolCalls(
+                any(org.springframework.ai.chat.prompt.Prompt.class),
+                eq(toolCallResponse)
+        );
+
+        verify(model, times(2)).call(
+                any(org.springframework.ai.chat.prompt.Prompt.class)
+        );
+    }
+
 }

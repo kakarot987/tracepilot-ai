@@ -175,15 +175,20 @@ public class InvestigationAgent {
 
         try {
             List<ToolCallback> callbacks = tools.create(
-                    incident.id(),
-                    budget,
-                    (type, evidenceId) ->
-                            investigations.recordEvidence(
-                                    run.id(),
-                                    evidenceId,
-                                    type
-                            )
-            );
+                            incident.id(),
+                            budget,
+                            (type, evidenceId) ->
+                                    investigations.recordEvidence(
+                                            run.id(),
+                                            evidenceId,
+                                            type
+                                    )
+                    ).stream()
+                    .filter(callback ->
+                            callback.getToolDefinition()
+                                    .name()
+                                    .equals("getServiceInfo"))
+                    .toList();
 
             String response = modelRunner.run(
                     SYSTEM_PROMPT,
