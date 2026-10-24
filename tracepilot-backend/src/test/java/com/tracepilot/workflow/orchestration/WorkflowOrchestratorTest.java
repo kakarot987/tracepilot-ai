@@ -59,7 +59,7 @@ class WorkflowOrchestratorTest {
                 1L,
                 Instant.now().plusSeconds(60)
         );
-
+        when(starter.start("INC-DB-001")).thenReturn(lease);
         heartbeat = mock(
                 WorkflowHeartbeatService.Heartbeat.class
         );

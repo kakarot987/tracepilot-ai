@@ -149,7 +149,9 @@ public class ReviewerAgent {
                         hypothesisText,
                         sourceText),
                 List.of(),
-                budget
+                budget,
+                true,
+                true
         );
 
         if (budget.isExpired()) {

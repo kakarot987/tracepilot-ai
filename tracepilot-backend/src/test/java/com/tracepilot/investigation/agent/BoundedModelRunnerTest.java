@@ -9,6 +9,7 @@ import org.springframework.ai.chat.model.ChatModel;
 import org.springframework.ai.chat.model.ChatResponse;
 import org.springframework.ai.model.tool.ToolCallingManager;
 import org.springframework.ai.model.tool.ToolExecutionResult;
+import org.springframework.ai.tool.ToolCallback;
 
 import java.time.Duration;
 import java.util.List;
@@ -174,9 +175,7 @@ class BoundedModelRunnerTest {
                 any(org.springframework.ai.chat.prompt.Prompt.class)
         )).thenReturn(response);
 
-        var callback = mock(
-                org.springframework.ai.tool.ToolCallback.class
-        );
+        var callback = mockToolCallback();
 
         var result = runner().run(
                 "Investigate using read-only tools",
@@ -267,9 +266,7 @@ class BoundedModelRunnerTest {
                         )
                 ));
 
-        var callback = mock(
-                org.springframework.ai.tool.ToolCallback.class
-        );
+        var callback = mockToolCallback();
 
         runner().run(
                 "Investigate using authorized tools",
@@ -291,6 +288,38 @@ class BoundedModelRunnerTest {
         verify(model, times(2)).call(
                 any(org.springframework.ai.chat.prompt.Prompt.class)
         );
+    }
+
+    private ToolCallback mockToolCallback() {
+
+        var callback = mock(
+                org.springframework.ai.tool.ToolCallback.class
+        );
+
+        var definition = mock(
+                org.springframework.ai.tool.definition.ToolDefinition.class
+        );
+
+        when(definition.name())
+                .thenReturn("getServiceInfo");
+
+        when(definition.inputSchema())
+                .thenReturn("""
+                    {
+                      "type": "object",
+                      "properties": {
+                        "serviceName": {
+                          "type": "string"
+                        }
+                      },
+                      "required": ["serviceName"]
+                    }
+                    """);
+
+        when(callback.getToolDefinition())
+                .thenReturn(definition);
+
+        return callback;
     }
 
 }

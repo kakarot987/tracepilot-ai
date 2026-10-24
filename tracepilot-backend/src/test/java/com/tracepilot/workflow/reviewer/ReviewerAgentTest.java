@@ -60,7 +60,9 @@ class ReviewerAgentTest {
                 anyString(),
                 anyString(),
                 eq(List.of()),
-                any(InvestigationBudget.class)
+                any(InvestigationBudget.class),
+                eq(true),
+                eq(true)
         )).thenReturn(json);
     }
 
@@ -96,7 +98,9 @@ class ReviewerAgentTest {
                 anyString(),
                 anyString(),
                 eq(List.of()),
-                any(InvestigationBudget.class)
+                any(InvestigationBudget.class),
+                eq(true),
+                eq(true)
         );
     }
 

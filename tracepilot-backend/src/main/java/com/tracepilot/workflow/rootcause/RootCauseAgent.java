@@ -120,7 +120,9 @@ public class RootCauseAgent {
                 SYSTEM_PROMPT,
                 userPrompt,
                 List.of(),
-                budget
+                budget,
+                true,
+                true
         );
 
         if (budget.isExpired()) {

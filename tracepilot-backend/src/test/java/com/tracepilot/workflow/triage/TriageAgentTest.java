@@ -5,6 +5,7 @@ import com.tracepilot.incident.domain.Incident;
 import com.tracepilot.investigation.agent.BoundedModelRunner;
 import com.tracepilot.investigation.domain.InvestigationBudget;
 
+import com.tracepilot.workflow.domain.AgentOutputValidationException;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import tools.jackson.databind.json.JsonMapper;
@@ -47,7 +48,9 @@ class TriageAgentTest {
                 anyString(),
                 anyString(),
                 anyList(),
-                any(InvestigationBudget.class)
+                any(InvestigationBudget.class),
+                eq(true),
+                eq(true)
         )).thenReturn("""
                 {
                   "severity": "HIGH",
@@ -75,7 +78,9 @@ class TriageAgentTest {
                 anyString(),
                 anyString(),
                 eq(List.of()),
-                any(InvestigationBudget.class)
+                any(InvestigationBudget.class),
+                eq(true),
+                eq(true)
         );
     }
 
@@ -88,7 +93,7 @@ class TriageAgentTest {
         )).thenReturn("This is not JSON");
 
         assertThrows(
-                IllegalArgumentException.class,
+                AgentOutputValidationException.class,
                 () -> agent.triage(incident())
         );
     }
@@ -109,7 +114,7 @@ class TriageAgentTest {
                 """);
 
         assertThrows(
-                IllegalArgumentException.class,
+                AgentOutputValidationException.class,
                 () -> agent.triage(incident())
         );
     }
@@ -130,7 +135,7 @@ class TriageAgentTest {
                 """);
 
         assertThrows(
-                IllegalArgumentException.class,
+                AgentOutputValidationException.class,
                 () -> agent.triage(incident())
         );
     }
