@@ -37,3 +37,13 @@ The report includes case coverage, top-1 accuracy among observed supported-cause
 ## Database collation warning
 
 A PostgreSQL collation-version warning means persisted collation metadata differs from the container's current libc/ICU version. Back up the database before maintenance, then identify indexes depending on the default collation and rebuild affected indexes (e.g., REINDEX DATABASE in a maintenance window) **before** using `ALTER DATABASE tracepilot REFRESH COLLATION VERSION`. Refreshing metadata alone does not rebuild affected indexes. Avoid automatic changes to the developer's local database.
+
+## Read-only capture from an existing workflow
+
+After a workflow finishes, collect an observation without another investigation POST:
+
+```powershell
+python evaluations/capture_workflow.py --workflow-id YOUR-WORKFLOW-UUID --output evaluations/local-predictions.json
+```
+
+The collector reads workflow metadata, ordered steps and investigation evidence references. It **does not** equate retrieved evidence with cited evidence: `retrievedEvidenceIds` is populated, while `citedEvidenceIds` remains empty pending review of actual citations. `predictedRootCause` remains null and `annotationRequired` remains true; annotate only what the model and Reviewer actually concluded before interpreting diagnostic accuracy. The evaluator currently ignores the annotation flag, so unreviewed captures must not be presented as validated model scores.
