@@ -37,6 +37,30 @@ class WorkflowScoringTests(unittest.TestCase):
         self.assertIsNone(result["summary"]["safeAbstentionRate"])
         self.assertIsNone(result["cases"][0]["correct"])
 
+    def test_unreviewed_abstention_is_not_scored_as_success(self):
+        row = {"incidentId": "INC-B", "workflowId": "live-run",
+               "status": "INSUFFICIENT_EVIDENCE", "latencyMs": 42526,
+               "predictedRootCause": None, "citedEvidenceIds": [],
+               "annotationRequired": True}
+        report = evaluate([row], GOLD)
+        summary = report["summary"]
+        self.assertEqual(1, summary["pendingAnnotations"])
+        self.assertEqual(0, summary["diagnosticRuns"])
+        self.assertEqual(0, summary["technicalFailures"])
+        self.assertIsNone(summary["safeAbstentionRate"])
+        self.assertIsNone(report["cases"][0]["correct"])
+        self.assertEqual(42526, summary["medianLatencyMs"])
+
+    def test_explicit_reviewed_abstention_can_be_scored(self):
+        row = {"incidentId": "INC-B", "workflowId": "reviewed-run",
+               "status": "INSUFFICIENT_EVIDENCE", "latencyMs": 42526,
+               "predictedRootCause": None, "citedEvidenceIds": [],
+               "annotationRequired": False}
+        summary = evaluate([row], GOLD)["summary"]
+        self.assertEqual(0, summary["pendingAnnotations"])
+        self.assertEqual(1, summary["diagnosticRuns"])
+        self.assertEqual(1.0, summary["safeAbstentionRate"])
+
     def test_duplicate_runs_are_rejected(self):
         row = {"incidentId": "INC-A", "workflowId": "run-a", "status": "FAILED", "latencyMs": 10, "predictedRootCause": None, "citedEvidenceIds": []}
         with self.assertRaises(ValueError):
