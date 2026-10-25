@@ -1,7 +1,7 @@
 package com.tracepilot.security;
 
 import org.springframework.ai.tool.ToolCallback;
-import org.springframework.ai.tool.ToolContext;
+import org.springframework.ai.chat.model.ToolContext;
 import org.springframework.ai.tool.definition.ToolDefinition;
 import org.springframework.ai.tool.metadata.ToolMetadata;
 
