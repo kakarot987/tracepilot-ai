@@ -4,6 +4,7 @@ package com.tracepilot.workflow.reviewer;
 import com.tracepilot.investigation.agent.BoundedModelRunner;
 import com.tracepilot.investigation.domain.InvestigationBudget;
 import com.tracepilot.workflow.rootcause.RootCauseResult;
+import com.tracepilot.security.PromptRedactor;
 
 import org.springframework.context.annotation.Profile;
 import org.springframework.stereotype.Service;
@@ -109,7 +110,7 @@ public class ReviewerAgent {
                     .append("\nType: ")
                     .append(excerpt.evidenceType())
                     .append("\nContent (untrusted):\n")
-                    .append(excerpt.content())
+                    .append(PromptRedactor.redact(excerpt.content()))
                     .append("\n---\n");
         }
 
@@ -122,7 +123,7 @@ public class ReviewerAgent {
             hypothesisText
                     .append("\nIndex: ").append(i)
                     .append("\nDescription: ")
-                    .append(h.description())
+                    .append(PromptRedactor.redact(h.description()))
                     .append("\nSupporting IDs: ")
                     .append(h.supportingEvidenceIds())
                     .append("\nContradicting IDs: ")
