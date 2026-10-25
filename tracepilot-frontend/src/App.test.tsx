@@ -8,6 +8,8 @@ vi.mock('./api', () => ({
     incidents: vi.fn(),
     workflow: vi.fn(),
     startWorkflow: vi.fn(),
+    startAsyncWorkflow: vi.fn(),
+    stepOutput: vi.fn(),
     workflowSteps: vi.fn(),
     stepOutputById: vi.fn(),
     evidence: vi.fn(),
@@ -35,6 +37,9 @@ beforeEach(() => {
   vi.clearAllMocks()
   vi.mocked(api.incidents).mockResolvedValue(incidents)
   vi.mocked(api.startWorkflow).mockResolvedValue(result)
+  vi.mocked(api.startAsyncWorkflow).mockResolvedValue({ workflowId: 'workflow-1', status: 'PENDING' })
+  vi.mocked(api.workflow).mockResolvedValue({ id: 'workflow-1', incidentId: 'INC-DB-001', status: 'INSUFFICIENT_EVIDENCE', stepsUsed: 1, followUpsUsed: 1, currentRole: null, startedAt: '2026-10-01T10:00:00Z', completedAt: '2026-10-01T10:01:00Z', failureReason: null })
+  vi.mocked(api.stepOutput).mockImplementation(async (_id, role) => ({ stepId: 'step-1', workflowId: 'workflow-1', agentRole: role, schemaVersion: 1, investigationRunId: null, json: JSON.stringify(role === 'ROOT_CAUSE' ? result.rootCause : result.review) }))
   vi.mocked(api.workflowSteps).mockResolvedValue(steps)
   vi.mocked(api.stepOutputById).mockResolvedValue({
     stepId: 'step-1', workflowId: 'workflow-1', agentRole: 'INVESTIGATOR',
@@ -72,7 +77,7 @@ describe('Investigation workspace', () => {
   })
 
   it('keeps incident visible when workflow execution fails', async () => {
-    vi.mocked(api.startWorkflow).mockRejectedValueOnce(new Error('Gateway timeout'))
+    vi.mocked(api.startAsyncWorkflow).mockRejectedValueOnce(new Error('Gateway timeout'))
     render(<App />)
     await screen.findByRole('heading', { name: 'Database connection failures' })
     fireEvent.click(screen.getByRole('button', { name: /Start investigation/i }))
@@ -98,7 +103,7 @@ describe('Investigation workspace', () => {
     expect(await screen.findByText(/Agent trace unavailable/)).toBeInTheDocument()
     fireEvent.click(screen.getByRole('button', { name: 'Retry loading trace' }))
     expect(await screen.findByRole('button', { name: /#1 INVESTIGATOR/i })).toBeInTheDocument()
-    expect(api.startWorkflow).toHaveBeenCalledTimes(1)
+    expect(api.startAsyncWorkflow).toHaveBeenCalledTimes(1)
     expect(api.workflowSteps).toHaveBeenCalledTimes(2)
   })
 
