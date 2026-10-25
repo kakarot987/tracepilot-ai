@@ -36,9 +36,11 @@ Use the [README](../README.md) and [release acceptance checklist](RELEASE_CHECKL
 Before publishing a GitHub Release or tagging `v0.1.0-preview`:
 
 - Confirm repository licensing and publication permissions.
-- Review generated artifacts for secrets/PII.
+- Review generated artifacts for secrets/PII. 
 - Add a representative dashboard screenshot or short local-demo recording.
-- Confirm the documented quickstart from a clean clone.
+- ![img.png](img.png)
+- Confirm the documented quickstart from a clean clone. Done
 - Record the passing branch-head CI run.
+- ![img_1.png](img_1.png)
 
 Do not use `v1.0.0` until broader benchmark coverage, security and reliability gates are explicitly met.
