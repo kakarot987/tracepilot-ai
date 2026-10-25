@@ -127,6 +127,62 @@ class RootCauseAgentTest {
     }
 
     @Test
+    void rejectsSufficiencyWhenOnlyOneOfTwoHypothesesIsSupported() {
+        response("""
+                {
+                  "hypotheses": [
+                    {
+                      "description": "Pool exhaustion",
+                      "supportingEvidenceIds": ["LOG-DB-001"],
+                      "contradictingEvidenceIds": [],
+                      "confidence": "MEDIUM"
+                    },
+                    {
+                      "description": "Unproven connection leak",
+                      "supportingEvidenceIds": [],
+                      "contradictingEvidenceIds": [],
+                      "confidence": "LOW"
+                    }
+                  ],
+                  "openQuestions": [],
+                  "sufficientEvidence": true
+                }
+                """);
+        var exception = assertThrows(IllegalArgumentException.class,
+                () -> agent.analyze(investigation()));
+        assertEquals(
+                "Cannot claim sufficient evidence with unsupported hypotheses",
+                exception.getMessage());
+    }
+
+    @Test
+    void allowsMultipleCompetingHypothesesWithExplicitUncertainty() {
+        response("""
+                {
+                  "hypotheses": [
+                    {
+                      "description": "Pool exhaustion",
+                      "supportingEvidenceIds": ["LOG-DB-001"],
+                      "contradictingEvidenceIds": [],
+                      "confidence": "MEDIUM"
+                    },
+                    {
+                      "description": "Possible slow queries",
+                      "supportingEvidenceIds": [],
+                      "contradictingEvidenceIds": [],
+                      "confidence": "LOW"
+                    }
+                  ],
+                  "openQuestions": ["Was request traffic higher?"],
+                  "sufficientEvidence": false
+                }
+                """);
+        var result = agent.analyze(investigation());
+        assertFalse(result.sufficientEvidence());
+        assertEquals(2, result.hypotheses().size());
+    }
+
+    @Test
     void rejectsIncompleteInvestigation() {
         var incomplete = new InvestigatorStepResult(
                 UUID.randomUUID(),
