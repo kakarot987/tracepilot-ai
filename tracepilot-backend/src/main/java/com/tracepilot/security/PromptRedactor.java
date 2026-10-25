@@ -12,8 +12,6 @@ public final class PromptRedactor {
             "(?i)\\b(api[_-]?key|access[_-]?token|refresh[_-]?token|password|passwd|secret)\\b(\\s*[:=]\\s*)[\\x22']?[^\\s,;\\x22']+");
     private static final Pattern EMAIL = Pattern.compile(
             "(?i)\\b[A-Z0-9._%+-]+@[A-Z0-9.-]+\\.[A-Z]{2,}\\b");
-    private static final Pattern IPV4 = Pattern.compile(
-            "\\b(?:\\d{1,3}\\.){3}\\d{1,3}\\b");
 
     private PromptRedactor() {}
 
