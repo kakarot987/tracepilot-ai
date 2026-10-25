@@ -117,4 +117,17 @@ describe('Investigation workspace', () => {
     expect(window.localStorage.getItem('tracepilot.activeWorkflow.v1')).toBeNull()
   })
 
+  it('blocks another POST on polling error and reconnects to the existing run', async () => {
+    vi.mocked(api.workflow).mockRejectedValueOnce(new Error('Connection interrupted'))
+    render(<App />)
+    await screen.findByRole('heading', { name: 'Database connection failures' })
+    fireEvent.click(screen.getByRole('button', { name: /Start investigation/i }))
+    expect(await screen.findByText(/Connection interrupted/)).toBeInTheDocument()
+    expect(screen.getByRole('button', { name: /Start investigation/i })).toBeDisabled()
+    fireEvent.click(screen.getByRole('button', { name: 'Reconnect to workflow' }))
+    expect(await screen.findByText('Cause unproven')).toBeInTheDocument()
+    expect(api.startAsyncWorkflow).toHaveBeenCalledTimes(1)
+    expect(api.workflow).toHaveBeenCalledTimes(2)
+  })
+
 })
