@@ -14,7 +14,7 @@
         "LOG-PAY-003",
         "SVC-payment-service"
       ],
-      "annotationRequired": true,
+      "annotationRequired": false,
       "annotationNote": "Inspect final Reviewer outcome and hypotheses; enter model-predicted cause and only actually cited IDs. Do not copy gold labels."
     }
   ]
