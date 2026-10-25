@@ -2,7 +2,7 @@ package com.tracepilot.security;
 
 import org.junit.jupiter.api.Test;
 import org.springframework.ai.tool.ToolCallback;
-import org.springframework.ai.tool.ToolContext;
+import org.springframework.ai.chat.model.ToolContext;
 import org.springframework.ai.tool.definition.ToolDefinition;
 
 import static org.junit.jupiter.api.Assertions.*;
