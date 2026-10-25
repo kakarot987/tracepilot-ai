@@ -1,4 +1,5 @@
 import { useEffect, useState } from 'react'
+import { WorkflowMonitor } from './WorkflowMonitor'
 import {
   api, type EvidenceReference, type Incident, type WorkflowExecution,
   type WorkflowStep, type WorkflowStepOutput,
@@ -234,6 +235,7 @@ export function App() {
           </>}
         </section>
       </div>
+      <WorkflowMonitor />
     </main>
   </div>
 }
