@@ -2,9 +2,9 @@
   "predictions": [
     {
       "incidentId": "INC-PAY-001",
-      "workflowId": "fd210d47-8217-434d-9092-059e17156e5e",
-      "status": "FAILED",
-      "latencyMs": 42697,
+      "workflowId": "363be4f3-e7f2-4522-8f34-ec4edb19fd30",
+      "status": "INSUFFICIENT_EVIDENCE",
+      "latencyMs": 42526,
       "predictedRootCause": null,
       "citedEvidenceIds": [],
       "retrievedEvidenceIds": [
