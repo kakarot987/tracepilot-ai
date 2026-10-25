@@ -3,6 +3,7 @@ package com.tracepilot.workflow.orchestration;
 import com.tracepilot.workflow.persistence.WorkflowLease;
 import com.tracepilot.workflow.persistence.WorkflowPersistenceService;
 import org.springframework.context.annotation.Profile;
+import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -24,6 +25,7 @@ public class AsyncWorkflowService {
     private final ExecutorService executor;
     private final Semaphore capacity;
 
+    @Autowired
     public AsyncWorkflowService(WorkflowExecutionStarter starter,
                                 WorkflowOrchestrator orchestrator,
                                 WorkflowPersistenceService workflows) {
