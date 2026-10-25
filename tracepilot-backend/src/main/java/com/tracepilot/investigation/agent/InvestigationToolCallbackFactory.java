@@ -2,6 +2,7 @@
 package com.tracepilot.investigation.agent;
 
 import com.tracepilot.investigation.domain.InvestigationBudget;
+import com.tracepilot.security.RedactingToolCallback;
 
 import com.tracepilot.tools.common.InvestigationToolExecutor;
 import com.tracepilot.tools.logs.SearchLogsTool;
@@ -76,7 +77,10 @@ public class InvestigationToolCallbackFactory {
         );
 
         return List.copyOf(
-                Arrays.asList(ToolCallbacks.from(runTools))
+                Arrays.stream(ToolCallbacks.from(runTools))
+                        .map(RedactingToolCallback::new)
+                        .map(callback -> (ToolCallback) callback)
+                        .toList()
         );
     }
 }
