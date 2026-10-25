@@ -15,6 +15,18 @@ export type WorkflowStatus =
   | 'TIMED_OUT'
   | 'CANCELLED'
 
+export interface WorkflowRun {
+  id: string
+  incidentId: string
+  status: WorkflowStatus
+  stepsUsed: number
+  followUpsUsed: number
+  currentRole: string | null
+  startedAt: string
+  completedAt: string | null
+  failureReason: string | null
+}
+
 export interface WorkflowExecution {
   workflowId: string
   status: WorkflowStatus
@@ -123,6 +135,8 @@ export const api = {
     request<WorkflowExecution>('/incidents/' + encodeURIComponent(id) + '/workflows', {
       method: 'POST',
     }),
+  workflow: (id: string) =>
+    request<WorkflowRun>('/workflows/' + encodeURIComponent(id)),
   workflowSteps: (id: string) =>
     request<WorkflowStep[]>('/workflows/' + encodeURIComponent(id) + '/steps'),
   stepOutputById: (workflowId: string, stepId: string) =>
