@@ -1,6 +1,6 @@
 # Milestone 6 — Phase 1: deterministic evaluation baseline
 
-This baseline has **20 deterministic evaluation scenarios derived from five independently seeded synthetic incidents**. The scenarios are evidence-subset views over Flyway V2 (incident catalog) and V4 (log evidence); they are **not 20 new database incidents** and do not satisfy the stronger TODO requirement for 20 independently seeded incidents.
+This baseline has **20 deterministic evaluation scenarios derived from five independently seeded synthetic incidents**. The scenarios are evidence-subset views over Flyway V2 (incident catalog) and V4 (log evidence); they are **not 20 new database incidents**. A separate, newly added Flyway V17 migration now meets the 20 distinct-incident fixture count; see the expansion below.
 
 ## Gold-label policy
 
@@ -26,4 +26,10 @@ The offline tests verify scenario count, unique case IDs, incident/service owner
 
 ## Follow-up
 
-Expand Flyway fixtures to at least 20 distinct, independently grounded synthetic incidents (not arbitrary duplicate copies of existing rows). Add supporting operational evidence sufficient to discriminate causal hypotheses and include cases designed for abstention. Preserve the original five incident IDs and migrations.
+Add further corroborating telemetry beyond the new V17 synthetic causal assertions and evaluate actual model outputs. Preserve the original five incident IDs and migrations.
+
+## Expansion: 20 independently seeded incidents
+
+Flyway V17 adds 15 distinct incidents with 45 scoped log records. Combined with the original V2/V4 seeds, PostgreSQL now contains **20 incidents and 60 log records**. The separate `milestone-6-incident-ground-truth.json` scores 12 cases as supported causal fixture diagnoses and 8 as justified abstentions. The earlier 20 evidence-subset cases remain a secondary stress-test set and are not counted as distinct incidents.
+
+The new labels express what the synthetic fixtures assert, not independent real-world verification or observed model performance. Phase 2 must capture actual model predictions and evaluate citation entailment before reporting accuracy. Validation is wired into Backend CI.
