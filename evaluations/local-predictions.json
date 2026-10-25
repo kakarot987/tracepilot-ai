@@ -1,0 +1,36 @@
+{
+  "predictions": [
+    {
+      "incidentId": "INC-PAY-001",
+      "workflowId": "363be4f3-e7f2-4522-8f34-ec4edb19fd30",
+      "status": "INSUFFICIENT_EVIDENCE",
+      "latencyMs": 42526,
+      "predictedRootCause": null,
+      "citedEvidenceIds": [],
+      "retrievedEvidenceIds": [
+        "DEP-PAY-001",
+        "LOG-PAY-001",
+        "LOG-PAY-002",
+        "LOG-PAY-003",
+        "SVC-payment-service"
+      ],
+      "annotationRequired": false,
+      "annotationNote": "Inspect final Reviewer outcome and hypotheses; enter model-predicted cause and only actually cited IDs. Do not copy gold labels."
+    },
+    {
+      "incidentId": "INC-CACHE-001",
+      "workflowId": "f3d7794f-0ec6-473d-9191-2d7aeab51ec3",
+      "status": "INSUFFICIENT_EVIDENCE",
+      "latencyMs": 27660,
+      "predictedRootCause": null,
+      "citedEvidenceIds": [],
+      "retrievedEvidenceIds": [
+        "LOG-CACHE-001",
+        "LOG-CACHE-002",
+        "LOG-CACHE-003"
+      ],
+      "annotationRequired": true,
+      "annotationNote": "Inspect final Reviewer outcome and hypotheses; enter model-predicted cause and only actually cited IDs. Do not copy gold labels."
+    }
+  ]
+}

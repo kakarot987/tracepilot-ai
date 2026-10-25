@@ -1,49 +1,78 @@
 # TracePilot AI
 
-> **Status: Planning / implementation not yet verified.** This is a new, standalone portfolio project, not an extension of an older repository.
+**Local-first, evidence-grounded incident investigation** built with Java 21, Spring Boot, Spring AI, PostgreSQL/pgvector, Ollama, React and Docker Compose.
 
-**TracePilot AI** is a Java-first, local-first multi-agent incident investigation platform. Users will create or select **synthetic** microservice incidents; an AI workflow will inspect bounded, read-only log and service tools, consult runbooks using retrieval-augmented generation (RAG), and produce an evidence-linked root-cause **hypothesis**, proposed next steps, and an observable agent trace. The platform will not autonomously change production systems.
+> **Status:** Working local portfolio MVP; not production-ready. Investigation results are hypotheses requiring human verification. Synthetic incidents only; no autonomous infrastructure write actions.
 
-## Why build it?
+## What works
 
-Demonstrate senior backend and agentic-AI engineering together: Spring Boot APIs, reliable tool calling, shared workflow state, RAG, multi-agent orchestration, persistence, tracing, evaluation, and a React UI. It should remain usable on a 16 GB RAM / RTX 4050 6 GB laptop without a paid AI API.
+- 20 seeded synthetic incidents, scoped log evidence and read-only investigation tools.
+- Four-role workflow: Triage → Investigator → Root Cause → Reviewer, with at most one focused follow-up.
+- Async workflow submission, persisted execution steps, stable evidence IDs, report views, live polling and refresh recovery.
+- Local runbooks and pgvector retrieval, plus a review-only approval sandbox (decisions are **not** persisted or enforced).
+- Bounded tool/model requests, workflow leases and expiry recovery.
+- Unit, integration and frontend browser smoke tests, with deterministic evaluation fixtures and an offline scoring harness.
 
-## Planned stack
+## Local quickstart
 
-Java 21; Spring Boot + Spring AI; local Ollama with a compact Qwen model; PostgreSQL + pgvector; local embeddings (candidate: EmbeddingGemma); React + TypeScript; Docker Compose; JUnit 5 and Testcontainers; Micrometer/OpenTelemetry. An optional GroqCloud adapter can be added later. **Versions/models are candidates, not validated selections.**
+Prerequisites: Docker Desktop with Compose, sufficient RAM for PostgreSQL/Ollama/Java, and a GPU-capable Ollama setup if using the configured GPU service. Set `POSTGRES_PASSWORD` in `infrastructure/.env` (do not commit it). The Docker Compose stack assumes NVIDIA GPU availability for the Ollama container.
 
-See [Tech Stack](docs/TECH_STACK.md) and [Architecture](docs/ARCHITECTURE.md).
+```powershell
+git clone https://github.com/kakarot987/tracepilot-ai.git
+cd tracepilot-ai
+git switch feature/milestone-6
+cd infrastructure
+docker compose up -d --build
+docker compose ps
+```
 
-## Planned MVP user flow
+Open http://localhost:5173. The Nginx frontend forwards `/api` to the Spring Boot backend. Spring Boot is also available at http://localhost:8080. The local Ollama server must contain the configured chat model `qwen3:4b` and embedding model; model downloads and embedding index setup may be required before end-to-end investigation and runbook retrieval work.
 
-1. Select a seeded synthetic incident (e.g. payment timeout).
-2. Start an investigation.
-3. Orchestrator coordinates triage, evidence gathering, root-cause hypotheses, and review.
-4. Tools retrieve *actual seeded records*, not fabricated tool results.
-5. UI displays progress, stable evidence IDs, uncertainties, and a proposed resolution plan.
-6. Evaluation compares predictions to separately recorded ground truth.
+Inspect the seeded incidents:
 
-## Project documentation
+```powershell
+Invoke-RestMethod http://localhost:8080/api/v1/incidents
+```
 
-| Document | Purpose |
-| --- | --- |
-| [TODO.md](TODO.md) | Canonical tasks, milestones, and progress |
-| [MVP Scope](docs/MVP_SCOPE.md) | Features, exclusions, acceptance criteria |
-| [Architecture](docs/ARCHITECTURE.md) | Components, data flows, agent lifecycle |
-| [Project Structure](docs/PROJECT_STRUCTURE.md) | Proposed repository tree and package ownership |
-| [Tech Stack](docs/TECH_STACK.md) | Technology choices and hardware constraints |
-| [Design Decisions](docs/DECISIONS.md) | Architectural reasoning and deferred choices |
-| [Evaluation](docs/EVALUATION.md) | Quality metrics and test plan |
-| [ChatGPT Collaboration](docs/CHATGPT_COLLABORATION.md) | Rules for documentation-only assistance |
+Choose an incident, start an investigation and inspect the persisted trace and Reviewer report. The workflow may legitimately return `INSUFFICIENT_EVIDENCE`: HTTP success or completed steps do not demonstrate a proven root cause.
 
-## Quickstart
+For development without the frontend container:
 
-**Not available yet.** Setup instructions, commands, screenshots, and tested prerequisites will be added after the developer implements and verifies the first working version. See [TODO.md](TODO.md) for the next milestone.
+```powershell
+cd tracepilot-frontend
+npm ci
+npm run dev
+```
 
-## Safety and limitations
+## Tests and evaluations
 
-Synthetic data only, no hardcoded credentials, no external production tools with write permissions. Treat logs and retrieved documentation as untrusted input. An LLM hypothesis is not a verified diagnosis. Cloud free tiers may change; the project must work locally without an API subscription.
+```powershell
+python -m unittest discover -s evaluations -p "test_*.py"
+cd tracepilot-backend
+.\mvnw.cmd clean verify
+cd ..\tracepilot-frontend
+npm ci
+npm test
+npm run build
+npm run test:e2e
+```
 
-## Ownership
+For browser E2E tests, install Playwright Chromium with `npx playwright install chromium` if needed. Browser smoke tests mock API calls; they are **not** live Ollama tests.
 
-The developer writes and tests all code and infrastructure. ChatGPT may review implementation and create/update **Markdown files only**, when requested.
+Evaluation assets: [20 seeded incident gold labels](evaluations/milestone-6-incident-ground-truth.json), [offline scoring script](evaluations/score_workflows.py) and [capture instructions](evaluations/milestone-6-phase-2.md). The currently committed local observations do not establish root-cause accuracy across the 20-case benchmark.
+
+## Architecture and documentation
+
+See [Architecture](docs/ARCHITECTURE.md), [Evaluation plan](docs/EVALUATION.md), [Milestone checklist](TODO.md) and [Milestone 6 security notes](evaluations/milestone-6-phase-4.md).
+
+## Limitations and release gates
+
+- No production authentication or authorization, hardened request limits, or production remediation approval enforcement.
+- Initial prompt, Reviewer and tool response redaction are best-effort and do not guarantee complete secret/PII protection; persisted evidence and UI output are not comprehensively sanitized.
+- Citation IDs establish provenance, **not** semantic truth.
+- Synchronous model calls are cooperative-deadline bounded, not forcibly cancelled.
+- Recovery counters are in-memory only; no durable operational telemetry.
+- A PostgreSQL collation mismatch was observed locally; any index rebuild should be backed up and planned separately.
+- Clean-clone reproducibility, full PostgreSQL integration tests, 20-case live evaluation, screenshots/demo, licensing and release tag are not yet verified.
+
+**Do not tag v1.0.0 or claim production readiness until release gates are reviewed.**

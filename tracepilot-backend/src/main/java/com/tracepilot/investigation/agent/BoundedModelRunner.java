@@ -2,6 +2,7 @@
 package com.tracepilot.investigation.agent;
 
 import com.tracepilot.investigation.domain.InvestigationBudget;
+import com.tracepilot.security.PromptRedactor;
 import com.tracepilot.investigation.domain.InvestigationLimitExceededException;
 
 import org.springframework.ai.chat.model.ChatModel;
@@ -78,6 +79,7 @@ public class BoundedModelRunner {
 
         Objects.requireNonNull(systemInstruction);
         Objects.requireNonNull(incidentPrompt);
+        incidentPrompt = PromptRedactor.redact(incidentPrompt);
         Objects.requireNonNull(callbacks);
         Objects.requireNonNull(budget);
 

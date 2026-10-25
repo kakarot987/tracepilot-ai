@@ -213,10 +213,9 @@ public class RootCauseAgent {
                     sufficient.booleanValue();
 
             if (sufficientEvidence && hypotheses.stream()
-                    .noneMatch(h ->
-                            !h.supportingEvidenceIds().isEmpty())) {
+                    .anyMatch(h -> h.supportingEvidenceIds().isEmpty())) {
                 throw new IllegalArgumentException(
-                        "Cannot claim sufficient evidence without support");
+                        "Cannot claim sufficient evidence with unsupported hypotheses");
             }
 
             return new RootCauseResult(

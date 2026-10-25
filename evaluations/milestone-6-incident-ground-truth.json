@@ -1,0 +1,302 @@
+{
+  "schemaVersion": 1,
+  "description": "20 unique seeded incidents; deterministic gold labels are fixture claims, not model outcomes",
+  "cases": [
+    {
+      "caseId": "EVAL-INC-PAY",
+      "incidentId": "INC-PAY-001",
+      "serviceName": "payment-service",
+      "evidenceIds": [
+        "LOG-PAY-001",
+        "LOG-PAY-002",
+        "LOG-PAY-003"
+      ],
+      "expectedOutcome": "INSUFFICIENT_EVIDENCE",
+      "rootCauseLabel": null,
+      "causalEvidenceIds": []
+    },
+    {
+      "caseId": "EVAL-INC-DB",
+      "incidentId": "INC-DB-001",
+      "serviceName": "order-service",
+      "evidenceIds": [
+        "LOG-DB-001",
+        "LOG-DB-002",
+        "LOG-DB-003"
+      ],
+      "expectedOutcome": "INSUFFICIENT_EVIDENCE",
+      "rootCauseLabel": null,
+      "causalEvidenceIds": []
+    },
+    {
+      "caseId": "EVAL-INC-UP",
+      "incidentId": "INC-UP-001",
+      "serviceName": "checkout-service",
+      "evidenceIds": [
+        "LOG-UP-001",
+        "LOG-UP-002",
+        "LOG-UP-003"
+      ],
+      "expectedOutcome": "INSUFFICIENT_EVIDENCE",
+      "rootCauseLabel": null,
+      "causalEvidenceIds": []
+    },
+    {
+      "caseId": "EVAL-INC-RATE",
+      "incidentId": "INC-RATE-001",
+      "serviceName": "api-gateway",
+      "evidenceIds": [
+        "LOG-RATE-001",
+        "LOG-RATE-002",
+        "LOG-RATE-003"
+      ],
+      "expectedOutcome": "INSUFFICIENT_EVIDENCE",
+      "rootCauseLabel": null,
+      "causalEvidenceIds": []
+    },
+    {
+      "caseId": "EVAL-INC-MEM",
+      "incidentId": "INC-MEM-001",
+      "serviceName": "inventory-service",
+      "evidenceIds": [
+        "LOG-MEM-001",
+        "LOG-MEM-002",
+        "LOG-MEM-003"
+      ],
+      "expectedOutcome": "INSUFFICIENT_EVIDENCE",
+      "rootCauseLabel": null,
+      "causalEvidenceIds": []
+    },
+    {
+      "caseId": "EVAL-INC-CACHE",
+      "incidentId": "INC-CACHE-001",
+      "serviceName": "catalog-service",
+      "evidenceIds": [
+        "LOG-CACHE-001",
+        "LOG-CACHE-002",
+        "LOG-CACHE-003"
+      ],
+      "expectedOutcome": "SUPPORTED_CAUSE",
+      "rootCauseLabel": "CACHE_TTL_ZERO",
+      "causalEvidenceIds": [
+        "LOG-CACHE-002",
+        "LOG-CACHE-003"
+      ]
+    },
+    {
+      "caseId": "EVAL-INC-TLS",
+      "incidentId": "INC-TLS-001",
+      "serviceName": "auth-service",
+      "evidenceIds": [
+        "LOG-TLS-001",
+        "LOG-TLS-002",
+        "LOG-TLS-003"
+      ],
+      "expectedOutcome": "SUPPORTED_CAUSE",
+      "rootCauseLabel": "TLS_CERTIFICATE_EXPIRED",
+      "causalEvidenceIds": [
+        "LOG-TLS-002",
+        "LOG-TLS-003"
+      ]
+    },
+    {
+      "caseId": "EVAL-INC-QUEUE",
+      "incidentId": "INC-QUEUE-001",
+      "serviceName": "notification-service",
+      "evidenceIds": [
+        "LOG-QUEUE-001",
+        "LOG-QUEUE-002",
+        "LOG-QUEUE-003"
+      ],
+      "expectedOutcome": "SUPPORTED_CAUSE",
+      "rootCauseLabel": "CONSUMER_WORKERS_PAUSED",
+      "causalEvidenceIds": [
+        "LOG-QUEUE-002",
+        "LOG-QUEUE-003"
+      ]
+    },
+    {
+      "caseId": "EVAL-INC-DISK",
+      "incidentId": "INC-DISK-001",
+      "serviceName": "media-service",
+      "evidenceIds": [
+        "LOG-DISK-001",
+        "LOG-DISK-002",
+        "LOG-DISK-003"
+      ],
+      "expectedOutcome": "SUPPORTED_CAUSE",
+      "rootCauseLabel": "DISK_VOLUME_FULL",
+      "causalEvidenceIds": [
+        "LOG-DISK-002",
+        "LOG-DISK-003"
+      ]
+    },
+    {
+      "caseId": "EVAL-INC-DNS",
+      "incidentId": "INC-DNS-001",
+      "serviceName": "profile-service",
+      "evidenceIds": [
+        "LOG-DNS-001",
+        "LOG-DNS-002",
+        "LOG-DNS-003"
+      ],
+      "expectedOutcome": "SUPPORTED_CAUSE",
+      "rootCauseLabel": "DNS_RECORD_REMOVED",
+      "causalEvidenceIds": [
+        "LOG-DNS-002",
+        "LOG-DNS-003"
+      ]
+    },
+    {
+      "caseId": "EVAL-INC-CLOCK",
+      "incidentId": "INC-CLOCK-001",
+      "serviceName": "identity-service",
+      "evidenceIds": [
+        "LOG-CLOCK-001",
+        "LOG-CLOCK-002",
+        "LOG-CLOCK-003"
+      ],
+      "expectedOutcome": "SUPPORTED_CAUSE",
+      "rootCauseLabel": "HOST_CLOCK_SKEW",
+      "causalEvidenceIds": [
+        "LOG-CLOCK-002",
+        "LOG-CLOCK-003"
+      ]
+    },
+    {
+      "caseId": "EVAL-INC-SCHEMA",
+      "incidentId": "INC-SCHEMA-001",
+      "serviceName": "analytics-service",
+      "evidenceIds": [
+        "LOG-SCHEMA-001",
+        "LOG-SCHEMA-002",
+        "LOG-SCHEMA-003"
+      ],
+      "expectedOutcome": "SUPPORTED_CAUSE",
+      "rootCauseLabel": "EVENT_SCHEMA_MISMATCH",
+      "causalEvidenceIds": [
+        "LOG-SCHEMA-002",
+        "LOG-SCHEMA-003"
+      ]
+    },
+    {
+      "caseId": "EVAL-INC-CERT",
+      "incidentId": "INC-CERT-001",
+      "serviceName": "shipping-service",
+      "evidenceIds": [
+        "LOG-CERT-001",
+        "LOG-CERT-002",
+        "LOG-CERT-003"
+      ],
+      "expectedOutcome": "SUPPORTED_CAUSE",
+      "rootCauseLabel": "MTLS_TRUST_STORE_MISSING_CA",
+      "causalEvidenceIds": [
+        "LOG-CERT-002",
+        "LOG-CERT-003"
+      ]
+    },
+    {
+      "caseId": "EVAL-INC-CONFIG",
+      "incidentId": "INC-CONFIG-001",
+      "serviceName": "search-service",
+      "evidenceIds": [
+        "LOG-CONFIG-001",
+        "LOG-CONFIG-002",
+        "LOG-CONFIG-003"
+      ],
+      "expectedOutcome": "SUPPORTED_CAUSE",
+      "rootCauseLabel": "FEATURE_FLAG_INVALID_INDEX",
+      "causalEvidenceIds": [
+        "LOG-CONFIG-002",
+        "LOG-CONFIG-003"
+      ]
+    },
+    {
+      "caseId": "EVAL-INC-BATCH",
+      "incidentId": "INC-BATCH-001",
+      "serviceName": "etl-service",
+      "evidenceIds": [
+        "LOG-BATCH-001",
+        "LOG-BATCH-002",
+        "LOG-BATCH-003"
+      ],
+      "expectedOutcome": "SUPPORTED_CAUSE",
+      "rootCauseLabel": "BATCH_SIZE_TOO_LARGE",
+      "causalEvidenceIds": [
+        "LOG-BATCH-002",
+        "LOG-BATCH-003"
+      ]
+    },
+    {
+      "caseId": "EVAL-INC-RETRY",
+      "incidentId": "INC-RETRY-001",
+      "serviceName": "billing-service",
+      "evidenceIds": [
+        "LOG-RETRY-001",
+        "LOG-RETRY-002",
+        "LOG-RETRY-003"
+      ],
+      "expectedOutcome": "SUPPORTED_CAUSE",
+      "rootCauseLabel": "ZERO_DELAY_RETRY_STORM",
+      "causalEvidenceIds": [
+        "LOG-RETRY-002",
+        "LOG-RETRY-003"
+      ]
+    },
+    {
+      "caseId": "EVAL-INC-POOL",
+      "incidentId": "INC-POOL-001",
+      "serviceName": "email-service",
+      "evidenceIds": [
+        "LOG-POOL-001",
+        "LOG-POOL-002",
+        "LOG-POOL-003"
+      ],
+      "expectedOutcome": "SUPPORTED_CAUSE",
+      "rootCauseLabel": "WORKER_POOL_TOO_SMALL",
+      "causalEvidenceIds": [
+        "LOG-POOL-002",
+        "LOG-POOL-003"
+      ]
+    },
+    {
+      "caseId": "EVAL-INC-SEARCH",
+      "incidentId": "INC-SEARCH-001",
+      "serviceName": "discovery-service",
+      "evidenceIds": [
+        "LOG-SEARCH-001",
+        "LOG-SEARCH-002",
+        "LOG-SEARCH-003"
+      ],
+      "expectedOutcome": "INSUFFICIENT_EVIDENCE",
+      "rootCauseLabel": null,
+      "causalEvidenceIds": []
+    },
+    {
+      "caseId": "EVAL-INC-EDGE",
+      "incidentId": "INC-EDGE-001",
+      "serviceName": "edge-service",
+      "evidenceIds": [
+        "LOG-EDGE-001",
+        "LOG-EDGE-002",
+        "LOG-EDGE-003"
+      ],
+      "expectedOutcome": "INSUFFICIENT_EVIDENCE",
+      "rootCauseLabel": null,
+      "causalEvidenceIds": []
+    },
+    {
+      "caseId": "EVAL-INC-SYNC",
+      "incidentId": "INC-SYNC-001",
+      "serviceName": "sync-service",
+      "evidenceIds": [
+        "LOG-SYNC-001",
+        "LOG-SYNC-002",
+        "LOG-SYNC-003"
+      ],
+      "expectedOutcome": "INSUFFICIENT_EVIDENCE",
+      "rootCauseLabel": null,
+      "causalEvidenceIds": []
+    }
+  ]
+}

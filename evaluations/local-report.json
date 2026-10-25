@@ -1,0 +1,37 @@
+{
+  "summary": {
+    "evaluated": 1,
+    "goldTotal": 20,
+    "diagnosticRuns": 1,
+    "technicalFailures": 0,
+    "pendingAnnotations": 0,
+    "coverage": 0.05,
+    "top1AccuracyOnSupportedCases": null,
+    "safeAbstentionRate": 1.0,
+    "citationIdValidity": null,
+    "causalEvidenceIdOverlap": null,
+    "toolCallSuccessRate": null,
+    "medianLatencyMs": 42526,
+    "note": "Technical failures and annotation-required captures are excluded from diagnostic quality scores; citation ID overlap is NOT semantic support."
+  },
+  "cases": [
+    {
+      "incidentId": "INC-PAY-001",
+      "workflowId": "363be4f3-e7f2-4522-8f34-ec4edb19fd30",
+      "expected": "INSUFFICIENT_EVIDENCE",
+      "status": "INSUFFICIENT_EVIDENCE",
+      "correct": true,
+      "abstained": true,
+      "diagnostic": true,
+      "annotationRequired": false,
+      "expectedLabel": null,
+      "predictedLabel": null,
+      "citationCount": 0,
+      "validCitationCount": 0,
+      "causalCitationCount": 0,
+      "latencyMs": 42526,
+      "toolCalls": null,
+      "successfulToolCalls": null
+    }
+  ]
+}
