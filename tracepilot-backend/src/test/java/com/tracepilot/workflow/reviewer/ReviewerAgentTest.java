@@ -184,6 +184,40 @@ class ReviewerAgentTest {
     }
 
     @Test
+    void repairsOmittedSecondHypothesisWithoutRelaxingValidation() {
+        var rootCause = new RootCauseResult(
+                List.of(
+                        new Hypothesis("Pool saturation", List.of("LOG-DB-001"), List.of(), "MEDIUM"),
+                        new Hypothesis("Long transactions", List.of("LOG-DB-002"), List.of(), "LOW")
+                ), List.of(), false);
+        var excerpts = List.of(
+                new EvidenceExcerpt("LOG-DB-001", "LOG", "Pool capacity reached"),
+                new EvidenceExcerpt("LOG-DB-002", "LOG", "Long transactions observed"));
+        when(runner.run(anyString(), anyString(), eq(List.of()),
+                any(InvestigationBudget.class), eq(true), eq(true)))
+                .thenReturn("""
+                        {"decision":"INSUFFICIENT_EVIDENCE",
+                        "claimReviews":[{"hypothesisIndex":0,"supported":false,
+                        "evidenceIds":["LOG-DB-001"],"explanation":"Cause unproven"}],
+                        "unresolvedQuestions":[],"rationale":"Incomplete"}
+                        """)
+                .thenReturn("""
+                        {"decision":"INSUFFICIENT_EVIDENCE",
+                        "claimReviews":[
+                        {"hypothesisIndex":0,"supported":false,
+                        "evidenceIds":["LOG-DB-001"],"explanation":"Cause unproven"},
+                        {"hypothesisIndex":1,"supported":false,
+                        "evidenceIds":["LOG-DB-002"],"explanation":"Cause unproven"}],
+                        "unresolvedQuestions":[],"rationale":"Neither cause proven"}
+                        """);
+        var result = reviewer.review(rootCause, excerpts);
+        assertEquals(2, result.claimReviews().size());
+        assertEquals(ReviewDecision.INSUFFICIENT_EVIDENCE, result.decision());
+        verify(runner, times(2)).run(anyString(), anyString(), eq(List.of()),
+                any(InvestigationBudget.class), eq(true), eq(true));
+    }
+
+    @Test
     void rejectsDuplicateHypothesisReview() {
         mockResponse("""
                 {
