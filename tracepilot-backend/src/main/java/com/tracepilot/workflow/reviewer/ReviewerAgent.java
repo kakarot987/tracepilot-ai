@@ -278,6 +278,17 @@ public class ReviewerAgent {
             String rationale =
                     requiredText(root, "rationale");
 
+            if (decision == ReviewDecision.FOLLOW_UP
+                    && questions.isEmpty()) {
+                throw new IllegalArgumentException(
+                        "FOLLOW_UP requires unresolved questions");
+            }
+            if (decision == ReviewDecision.ACCEPT
+                    && !questions.isEmpty()) {
+                throw new IllegalArgumentException(
+                        "ACCEPT cannot contain unresolved questions");
+            }
+
             // An LLM cannot approve evidence it never saw.
             if (decision == ReviewDecision.ACCEPT) {
 
