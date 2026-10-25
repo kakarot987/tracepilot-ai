@@ -2,34 +2,36 @@
   "summary": {
     "evaluated": 1,
     "goldTotal": 20,
+    "diagnosticRuns": 0,
+    "technicalFailures": 0,
+    "pendingAnnotations": 1,
     "coverage": 0.05,
     "top1AccuracyOnSupportedCases": null,
     "safeAbstentionRate": null,
     "citationIdValidity": null,
     "causalEvidenceIdOverlap": null,
     "toolCallSuccessRate": null,
-    "medianLatencyMs": 42697,
-    "note": "Technical failures are excluded from diagnostic accuracy and abstention denominators; citation ID overlap is NOT semantic support.",
-    "diagnosticRuns": 0,
-    "technicalFailures": 1
+    "medianLatencyMs": 42526,
+    "note": "Technical failures and annotation-required captures are excluded from diagnostic quality scores; citation ID overlap is NOT semantic support."
   },
   "cases": [
     {
       "incidentId": "INC-PAY-001",
-      "workflowId": "fd210d47-8217-434d-9092-059e17156e5e",
+      "workflowId": "363be4f3-e7f2-4522-8f34-ec4edb19fd30",
       "expected": "INSUFFICIENT_EVIDENCE",
-      "status": "FAILED",
+      "status": "INSUFFICIENT_EVIDENCE",
       "correct": null,
-      "abstained": false,
+      "abstained": true,
+      "diagnostic": false,
+      "annotationRequired": true,
       "expectedLabel": null,
       "predictedLabel": null,
       "citationCount": 0,
       "validCitationCount": 0,
       "causalCitationCount": 0,
-      "latencyMs": 42697,
+      "latencyMs": 42526,
       "toolCalls": null,
-      "successfulToolCalls": null,
-      "diagnostic": false
+      "successfulToolCalls": null
     }
   ]
 }
