@@ -207,4 +207,49 @@ class RootCauseAgentTest {
                 IllegalArgumentException.class,
                 () -> agent.analyze(investigation()));
     }
+
+    @Test
+    void rejectsCitationNotPresentInInvestigationEvenWhenOtherCitationsAreValid() {
+        response("""
+            {
+              "hypotheses": [{
+                "description": "Mixed citations",
+                "supportingEvidenceIds": [
+                  "LOG-DB-001",
+                  "LOG-OTHER-999"
+                ],
+                "contradictingEvidenceIds": [],
+                "confidence": "MEDIUM"
+              }],
+              "openQuestions": [],
+              "sufficientEvidence": false
+            }
+            """);
+
+        assertThrows(
+                IllegalArgumentException.class,
+                () -> agent.analyze(investigation())
+        );
+    }
+
+    @Test
+    void rejectsSameEvidenceAsSupportingAndContradicting() {
+        response("""
+            {
+              "hypotheses": [{
+                "description": "Contradictory attribution",
+                "supportingEvidenceIds": ["LOG-DB-001"],
+                "contradictingEvidenceIds": ["LOG-DB-001"],
+                "confidence": "LOW"
+              }],
+              "openQuestions": [],
+              "sufficientEvidence": false
+            }
+            """);
+
+        assertThrows(
+                IllegalArgumentException.class,
+                () -> agent.analyze(investigation())
+        );
+    }
 }

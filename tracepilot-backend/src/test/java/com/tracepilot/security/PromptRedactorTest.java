@@ -23,4 +23,27 @@ class PromptRedactorTest {
     void preservesOrdinaryLogDescriptions() {
         assertEquals("JDBC connection timed out", PromptRedactor.redact("JDBC connection timed out"));
     }
+
+    @Test
+    void masksAccessTokenAndRefreshToken() {
+        String result = PromptRedactor.redact(
+                "access_token=abc123 refresh_token:xyz890"
+        );
+
+        assertFalse(result.contains("abc123"));
+        assertFalse(result.contains("xyz890"));
+
+        assertTrue(
+                result.contains("access_token=[REDACTED]")
+        );
+
+        assertTrue(
+                result.contains("refresh_token:[REDACTED]")
+        );
+    }
+
+    @Test
+    void handlesNullInputWithoutThrowing() {
+        assertNull(PromptRedactor.redact(null));
+    }
 }

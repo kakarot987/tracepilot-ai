@@ -492,5 +492,61 @@ class ReviewerAgentTest {
                 () -> reviewer.review(supportedRootCause(), operationalEvidence()));
         assertEquals("ACCEPT cannot contain unresolved questions", error.getMessage());
     }
+    @Test
+    void rejectsOutOfRangeHypothesisIndex() {
+        mockResponse("""
+            {
+              "decision": "REJECT",
+              "claimReviews": [{
+                "hypothesisIndex": 1,
+                "supported": false,
+                "evidenceIds": [],
+                "explanation": "Unproven hypothesis"
+              }],
+              "unresolvedQuestions": [],
+              "rationale": "Insufficient support"
+            }
+            """);
 
+        assertThrows(
+                IllegalArgumentException.class,
+                () -> reviewer.review(
+                        supportedRootCause(),
+                        operationalEvidence()
+                )
+        );
+    }
+
+    @Test
+    void acceptsExplicitInsufficientEvidenceWhenHypothesisIsUnproven() {
+        mockResponse("""
+            {
+              "decision": "INSUFFICIENT_EVIDENCE",
+              "claimReviews": [{
+                "hypothesisIndex": 0,
+                "supported": false,
+                "evidenceIds": ["LOG-DB-001"],
+                "explanation": "Symptom does not prove cause"
+              }],
+              "unresolvedQuestions": [
+                "What consumed the connection pool?"
+              ],
+              "rationale": "More causal evidence is needed"
+            }
+            """);
+
+        ReviewerResult outcome = reviewer.review(
+                supportedRootCause(),
+                operationalEvidence()
+        );
+
+        assertEquals(
+                ReviewDecision.INSUFFICIENT_EVIDENCE,
+                outcome.decision()
+        );
+
+        assertFalse(
+                outcome.claimReviews().get(0).supported()
+        );
+    }
 }
