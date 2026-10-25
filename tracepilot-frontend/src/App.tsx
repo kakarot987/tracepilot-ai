@@ -131,7 +131,7 @@ export function App() {
   }, [])
 
   function selectIncident(incident: Incident) {
-    if (running) return
+    if (running || (activeWorkflowId && !workflow)) return
     setSelected(incident)
     setWorkflow(null)
     setSteps([])
@@ -200,8 +200,15 @@ export function App() {
     }
   }
 
+  function reconnect() {
+    if (!activeWorkflowId || running) return
+    setError(null)
+    setProgress('Reconnecting to persisted workflow…')
+    void observeWorkflow(activeWorkflowId, ++session.current)
+  }
+
   async function investigate() {
-    if (!selected || running) return
+    if (!selected || running || (activeWorkflowId && !workflow)) return
     setRunning(true)
     setError(null)
     setWorkflow(null)
@@ -209,7 +216,6 @@ export function App() {
     setDetails({})
     setExpanded(null)
     setTraceError(null)
-    setActiveWorkflowId(null)
     setProgress('Submitting investigation…')
     try {
       const submission = await api.startAsyncWorkflow(selected.id)
@@ -249,7 +255,7 @@ export function App() {
             : <div className="incident-items">{incidents.map(incident =>
               <button type="button" key={incident.id}
                 className={'incident-item ' + (selected?.id === incident.id ? 'selected' : '')}
-                disabled={running} onClick={() => selectIncident(incident)}>
+                disabled={running || Boolean(activeWorkflowId && !workflow)} onClick={() => selectIncident(incident)}>
                 <span className="incident-id">{incident.id}</span><strong>{incident.title}</strong>
                 <span className="muted">{incident.serviceName}</span>
               </button>)}</div>}
@@ -262,11 +268,15 @@ export function App() {
               <div><span>Occurred</span><strong>{new Date(selected.occurredAt).toLocaleString()}</strong></div>
               <div><span>Service</span><strong>{selected.serviceName}</strong></div>
             </div>
-            <button className="primary" type="button" onClick={investigate} disabled={running}>
+            <button className="primary" type="button" onClick={investigate} disabled={running || Boolean(activeWorkflowId && !workflow)}>
               {running ? 'Investigating…' : 'Start investigation →'}
             </button>
             {running && <p className="muted" role="status">Live progress: {progress}</p>}
             {activeWorkflowId && <p className="muted">Active workflow ID: <code>{activeWorkflowId}</code></p>}
+            {activeWorkflowId && !workflow && !running && <div className="reconnect-panel">
+              <p>Workflow status is not confirmed. Reconnect to this run before starting another investigation.</p>
+              <button type="button" className="retry" onClick={reconnect}>Reconnect to workflow</button>
+            </div>}
             {running && steps.length > 0 && <p className="muted">Persisted agent steps: {steps.map(step => '#' + step.stepNumber + ' ' + label(step.agentRole) + ' (' + step.status + ')').join(' · ')}</p>}
             {workflow && <div className="result">
               <div className="result-heading"><h3>Workflow result</h3><span className={'pill status-' + statusClass(workflow.status)}>{label(workflow.status)}</span></div>
