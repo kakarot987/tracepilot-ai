@@ -15,6 +15,8 @@ export type WorkflowStatus =
   | 'TIMED_OUT'
   | 'CANCELLED'
 
+export interface AsyncSubmission { workflowId: string; status: 'PENDING' }
+
 export interface WorkflowRun {
   id: string
   incidentId: string
@@ -131,6 +133,8 @@ async function request<T>(path: string, init?: RequestInit): Promise<T> {
 
 export const api = {
   incidents: () => request<Incident[]>('/incidents'),
+  startAsyncWorkflow: (id: string) =>
+    request<AsyncSubmission>('/incidents/' + encodeURIComponent(id) + '/workflows/async', { method: 'POST' }),
   startWorkflow: (id: string) =>
     request<WorkflowExecution>('/incidents/' + encodeURIComponent(id) + '/workflows', {
       method: 'POST',
