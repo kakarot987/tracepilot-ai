@@ -95,7 +95,7 @@ describe('Investigation workspace', () => {
   })
 
   it('preserves workflow report and retries a failed trace request without rerunning', async () => {
-    vi.mocked(api.workflowSteps).mockRejectedValueOnce(new Error('Backend not ready'))
+    vi.mocked(api.workflowSteps).mockResolvedValueOnce(steps).mockRejectedValueOnce(new Error('Backend not ready'))
     render(<App />)
     await screen.findByRole('heading', { name: 'Database connection failures' })
     fireEvent.click(screen.getByRole('button', { name: /Start investigation/i }))
@@ -104,7 +104,7 @@ describe('Investigation workspace', () => {
     fireEvent.click(screen.getByRole('button', { name: 'Retry loading trace' }))
     expect(await screen.findByRole('button', { name: /#1 INVESTIGATOR/i })).toBeInTheDocument()
     expect(api.startAsyncWorkflow).toHaveBeenCalledTimes(1)
-    expect(api.workflowSteps).toHaveBeenCalledTimes(2)
+    expect(api.workflowSteps).toHaveBeenCalledTimes(3)
   })
 
 })
