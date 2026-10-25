@@ -6,6 +6,7 @@ import { api, type Incident, type WorkflowExecution, type WorkflowStep } from '.
 vi.mock('./api', () => ({
   api: {
     incidents: vi.fn(),
+    workflow: vi.fn(),
     startWorkflow: vi.fn(),
     workflowSteps: vi.fn(),
     stepOutputById: vi.fn(),
