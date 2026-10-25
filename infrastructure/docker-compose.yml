@@ -82,6 +82,19 @@ services:
     networks:
       - tracepilot-network
 
+  frontend:
+    build:
+      context: ../tracepilot-frontend
+      dockerfile: Dockerfile
+    container_name: tracepilot-frontend
+    restart: unless-stopped
+    ports:
+      - "127.0.0.1:5173:80"
+    depends_on:
+      - backend
+    networks:
+      - tracepilot-network
+
   rag-indexer:
     profiles: ["index"]
     build:
