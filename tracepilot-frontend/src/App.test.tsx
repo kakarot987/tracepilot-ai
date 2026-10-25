@@ -46,14 +46,14 @@ beforeEach(() => {
 describe('Investigation workspace', () => {
   it('loads incidents and switches the selected incident', async () => {
     render(<App />)
-    expect(await screen.findByText('Database connection failures')).toBeInTheDocument()
+    expect(await screen.findByRole('heading', { name: 'Database connection failures' })).toBeInTheDocument()
     fireEvent.click(screen.getByRole('button', { name: /INC-PAY-001/i }))
     expect(screen.getByRole('heading', { name: 'Payment request timeouts' })).toBeInTheDocument()
   })
 
   it('renders insufficient evidence, reviewer rationale and step evidence', async () => {
     render(<App />)
-    await screen.findByText('Database connection failures')
+    await screen.findByRole('heading', { name: 'Database connection failures' })
     fireEvent.click(screen.getByRole('button', { name: /Start investigation/i }))
     expect(await screen.findByText('Cause unproven')).toBeInTheDocument()
     expect(screen.getByText(/Evidence was insufficient/)).toBeInTheDocument()
@@ -72,7 +72,7 @@ describe('Investigation workspace', () => {
   it('keeps incident visible when workflow execution fails', async () => {
     vi.mocked(api.startWorkflow).mockRejectedValueOnce(new Error('Gateway timeout'))
     render(<App />)
-    await screen.findByText('Database connection failures')
+    await screen.findByRole('heading', { name: 'Database connection failures' })
     fireEvent.click(screen.getByRole('button', { name: /Start investigation/i }))
     expect(await screen.findByRole('alert')).toHaveTextContent('Gateway timeout')
     expect(screen.getByRole('heading', { name: 'Database connection failures' })).toBeInTheDocument()
