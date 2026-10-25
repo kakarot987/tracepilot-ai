@@ -79,6 +79,8 @@ export function App() {
   const [expanded, setExpanded] = useState<string | null>(null)
   const [loading, setLoading] = useState(true)
   const [running, setRunning] = useState(false)
+  const [activeWorkflowId, setActiveWorkflowId] = useState<string | null>(null)
+  const [progress, setProgress] = useState('')
   const [error, setError] = useState<string | null>(null)
   const [incidentError, setIncidentError] = useState(false)
   const [traceError, setTraceError] = useState<string | null>(null)
@@ -153,10 +155,38 @@ export function App() {
     setDetails({})
     setExpanded(null)
     setTraceError(null)
+    setActiveWorkflowId(null)
+    setProgress('Submitting investigation…')
     try {
-      const result = await api.startWorkflow(selected.id)
-      setWorkflow(result)
-      await loadTrace(result.workflowId)
+      const submission = await api.startAsyncWorkflow(selected.id)
+      setActiveWorkflowId(submission.workflowId)
+      let finished = false
+      for (let attempt = 0; attempt < 120; attempt++) {
+        const state = await api.workflow(submission.workflowId)
+        setProgress(state.status + (state.currentRole ? ' · ' + state.currentRole : '') + ' · Step ' + state.stepsUsed)
+        const trace = await api.workflowSteps(submission.workflowId)
+        setSteps(trace)
+        if (['COMPLETED', 'INSUFFICIENT_EVIDENCE', 'FAILED', 'TIMED_OUT', 'CANCELLED'].includes(state.status)) {
+          finished = true
+          // Rehydrate the most recent reports from persisted output, even after refresh.
+          let rootCause: WorkflowExecution['rootCause'] = null
+          let review: WorkflowExecution['review'] = null
+          try {
+            const saved = await api.stepOutput(submission.workflowId, 'ROOT_CAUSE')
+            rootCause = JSON.parse(saved.json) as WorkflowExecution['rootCause']
+          } catch { /* Early termination may not produce analysis. */ }
+          try {
+            const saved = await api.stepOutput(submission.workflowId, 'REVIEWER')
+            review = JSON.parse(saved.json) as WorkflowExecution['review']
+          } catch { /* Early termination may not produce a review. */ }
+          setWorkflow({ workflowId: submission.workflowId, status: state.status,
+            followUpsUsed: state.followUpsUsed, rootCause, review })
+          await loadTrace(submission.workflowId)
+          break
+        }
+        await new Promise(resolve => setTimeout(resolve, 2500))
+      }
+      if (!finished) setError('Workflow is still active. Track it using the Workflow monitor and its ID.')
     } catch (err: unknown) {
       setError(err instanceof Error ? err.message : 'Investigation failed')
     } finally {
@@ -206,7 +236,9 @@ export function App() {
             <button className="primary" type="button" onClick={investigate} disabled={running}>
               {running ? 'Investigating…' : 'Start investigation →'}
             </button>
-            {running && <p className="muted" role="status">Running workflow and loading persisted step details…</p>}
+            {running && <p className="muted" role="status">Live progress: {progress}</p>}
+            {activeWorkflowId && <p className="muted">Active workflow ID: <code>{activeWorkflowId}</code></p>}
+            {running && steps.length > 0 && <p className="muted">Persisted agent steps: {steps.map(step => '#' + step.stepNumber + ' ' + label(step.agentRole) + ' (' + step.status + ')').join(' · ')}</p>}
             {workflow && <div className="result">
               <div className="result-heading"><h3>Workflow result</h3><span className={'pill status-' + statusClass(workflow.status)}>{label(workflow.status)}</span></div>
               <p className="muted">Workflow ID: <code>{workflow.workflowId}</code></p>
