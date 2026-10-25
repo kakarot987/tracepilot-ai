@@ -34,3 +34,5 @@
 .status-completed{color:#abe8d0;border-color:#317f68}
 .status-failed,.status-timed-out,.status-cancelled{color:#ffc4d0;border-color:#a05469}
 @media(max-width:700px){.trace-toggle{align-items:flex-start}.report-heading{align-items:flex-start}}
+
+.retry{margin-left:14px;margin-top:5px;border:1px solid #8a5266;background:#402637;color:#ffe0e6;padding:8px 11px;border-radius:7px;cursor:pointer;font-weight:650}.retry:hover{background:#573344}.retry:disabled{opacity:.55;cursor:wait}
