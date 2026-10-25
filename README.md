@@ -63,7 +63,14 @@ Evaluation assets: [20 seeded incident gold labels](evaluations/milestone-6-inci
 
 ## Architecture and documentation
 
-See [Architecture](docs/ARCHITECTURE.md), [Evaluation plan](docs/EVALUATION.md), [Milestone checklist](TODO.md) and [Milestone 6 security notes](evaluations/milestone-6-phase-4.md).
+Start with the [complete project guide](docs/TRACEPILOT_GUIDE.md), then explore:
+
+- [As-built architecture, agents and reliability flows](docs/TRACEPILOT_ARCHITECTURE.md)
+- [REST APIs and low-level execution walkthrough](docs/TRACEPILOT_API_WALKTHROUGH.md)
+- [Integration into another Java/Spring Boot project](docs/TRACEPILOT_INTEGRATION_GUIDE.md)
+- [Client value, operations, testing, security and interview guide](docs/TRACEPILOT_USE_CASES_AND_OPERATIONS.md)
+
+Additional references: [original conceptual architecture](docs/ARCHITECTURE.md), [evaluation plan](docs/EVALUATION.md), [Milestone checklist](TODO.md), [Milestone 6 security notes](evaluations/milestone-6-phase-4.md).
 
 ## Limitations and release gates
 
