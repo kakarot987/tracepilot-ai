@@ -611,6 +611,33 @@ public class WorkflowPersistenceService {
                 .optional();
     }
 
+    /**
+     * Finalize a leased PENDING workflow when dispatch fails before execution.
+     * Fencing guards against changing a run claimed by another worker.
+     */
+    @Transactional
+    public boolean failPendingDispatch(WorkflowLease lease) {
+        Objects.requireNonNull(lease);
+        return jdbc.sql("""
+                UPDATE workflow_runs
+                SET status = 'FAILED',
+                    completed_at = clock_timestamp(),
+                    failure_reason = 'Workflow dispatch failed',
+                    execution_owner = NULL,
+                    lease_expires_at = NULL,
+                    version = version + 1
+                WHERE id = :id
+                  AND status = 'PENDING'
+                  AND active_agent_role IS NULL
+                  AND execution_owner = :owner
+                  AND fencing_token = :token
+                """)
+                .param("id", lease.workflowId())
+                .param("owner", lease.ownerId())
+                .param("token", lease.fencingToken())
+                .update() == 1;
+    }
+
     @Transactional
     public int recoverExpiredWorkflows() {
 

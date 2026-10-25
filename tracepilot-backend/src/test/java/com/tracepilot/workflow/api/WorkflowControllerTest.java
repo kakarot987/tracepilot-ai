@@ -6,6 +6,7 @@ import com.tracepilot.workflow.domain.AgentRole;
 import com.tracepilot.workflow.domain.WorkflowStatus;
 import com.tracepilot.workflow.orchestration.WorkflowExecutionResult;
 import com.tracepilot.workflow.orchestration.WorkflowOrchestrator;
+import com.tracepilot.workflow.orchestration.AsyncWorkflowService;
 import com.tracepilot.workflow.persistence.WorkflowPersistenceService;
 import com.tracepilot.workflow.persistence.WorkflowRunRecord;
 import com.tracepilot.workflow.persistence.WorkflowStepOutput;
@@ -25,6 +26,7 @@ import static org.mockito.Mockito.*;
 class WorkflowControllerTest {
 
     private WorkflowOrchestrator orchestrator;
+    private AsyncWorkflowService asyncWorkflows;
     private WorkflowPersistenceService workflows;
     private IncidentRepository incidents;
     private WorkflowController controller;
@@ -36,11 +38,13 @@ class WorkflowControllerTest {
     void setUp() {
 
         orchestrator = mock(WorkflowOrchestrator.class);
+        asyncWorkflows = mock(AsyncWorkflowService.class);
         workflows = mock(WorkflowPersistenceService.class);
         incidents = mock(IncidentRepository.class);
 
         controller = new WorkflowController(
                 orchestrator,
+                asyncWorkflows,
                 workflows,
                 incidents
         );
@@ -225,4 +229,28 @@ class WorkflowControllerTest {
                 response.getStatusCode()
         );
     }
+    @Test
+    void acceptsAsyncWorkflowForExistingIncident() {
+        when(incidents.findById("INC-DB-001"))
+                .thenReturn(Optional.of(mock(com.tracepilot.incident.domain.Incident.class)));
+        when(asyncWorkflows.submit("INC-DB-001")).thenReturn(workflowId);
+
+        var response = controller.startAsync("INC-DB-001");
+
+        assertEquals(HttpStatus.ACCEPTED, response.getStatusCode());
+        assertEquals(workflowId, response.getBody().get("workflowId"));
+        verify(asyncWorkflows).submit("INC-DB-001");
+        verifyNoInteractions(orchestrator);
+    }
+
+    @Test
+    void rejectsAsyncSubmissionWhenAtCapacity() {
+        when(incidents.findById("INC-DB-001"))
+                .thenReturn(Optional.of(mock(com.tracepilot.incident.domain.Incident.class)));
+        when(asyncWorkflows.submit("INC-DB-001"))
+                .thenThrow(new java.util.concurrent.RejectedExecutionException("busy"));
+        assertEquals(HttpStatus.SERVICE_UNAVAILABLE,
+                controller.startAsync("INC-DB-001").getStatusCode());
+    }
+
 }

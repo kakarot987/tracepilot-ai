@@ -1,0 +1,44 @@
+name: Frontend CI
+
+on:
+  push:
+    branches:
+      - main
+      - "feature/**"
+  pull_request:
+    branches:
+      - main
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: tracepilot-frontend
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: "22"
+      - name: Install dependencies
+        run: npm install --no-audit --no-fund
+      - name: Run frontend tests
+        run: npm test
+      - name: Typecheck and build
+        run: npm run build
+      - name: Install Chromium
+        run: npx playwright install --with-deps chromium
+      - name: Browser smoke test
+        run: npm run test:e2e
+      - name: Build frontend Docker image
+        working-directory: .
+        run: docker build -t tracepilot-frontend:ci ./tracepilot-frontend
+      - name: Validate Compose configuration
+        working-directory: infrastructure
+        env:
+          POSTGRES_PASSWORD: ci-placeholder
+        run: docker compose config --quiet

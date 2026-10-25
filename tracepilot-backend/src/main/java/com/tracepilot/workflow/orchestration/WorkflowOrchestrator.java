@@ -71,7 +71,10 @@ public class WorkflowOrchestrator {
 
     public WorkflowExecutionResult execute(String incidentId) {
 
-        WorkflowLease lease = starter.start(incidentId);
+        return execute(starter.start(incidentId));
+    }
+
+    public WorkflowExecutionResult execute(WorkflowLease lease) {
         UUID id = lease.workflowId();
 
         int followUps = 0;
