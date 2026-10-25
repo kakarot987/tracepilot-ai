@@ -5,6 +5,7 @@ import com.tracepilot.incident.repository.IncidentRepository;
 import com.tracepilot.workflow.domain.AgentRole;
 import com.tracepilot.workflow.orchestration.WorkflowExecutionResult;
 import com.tracepilot.workflow.orchestration.WorkflowOrchestrator;
+import com.tracepilot.workflow.orchestration.AsyncWorkflowService;
 import com.tracepilot.workflow.persistence.WorkflowPersistenceService;
 import com.tracepilot.workflow.persistence.WorkflowRunRecord;
 import com.tracepilot.workflow.persistence.WorkflowStepOutput;
@@ -12,6 +13,7 @@ import com.tracepilot.workflow.persistence.WorkflowStepRecord;
 
 import org.springframework.context.annotation.Profile;
 import org.springframework.http.ResponseEntity;
+import org.springframework.http.HttpStatus;
 import org.springframework.web.bind.annotation.*;
 
 import java.util.List;
@@ -24,15 +26,18 @@ import java.util.UUID;
 public class WorkflowController {
 
     private final WorkflowOrchestrator orchestrator;
+    private final AsyncWorkflowService asyncWorkflows;
     private final WorkflowPersistenceService workflows;
     private final IncidentRepository incidents;
 
     public WorkflowController(
             WorkflowOrchestrator orchestrator,
+            AsyncWorkflowService asyncWorkflows,
             WorkflowPersistenceService workflows,
             IncidentRepository incidents) {
 
         this.orchestrator = orchestrator;
+        this.asyncWorkflows = asyncWorkflows;
         this.workflows = workflows;
         this.incidents = incidents;
     }
@@ -51,6 +56,23 @@ public class WorkflowController {
                 orchestrator.execute(incidentId);
 
         return ResponseEntity.ok(result);
+    }
+
+    @PostMapping("/incidents/{incidentId}/workflows/async")
+    public ResponseEntity<java.util.Map<String, Object>> startAsync(
+            @PathVariable String incidentId) {
+        if (incidents.findById(incidentId).isEmpty()) {
+            return ResponseEntity.notFound().build();
+        }
+        try {
+            UUID id = asyncWorkflows.submit(incidentId);
+            return ResponseEntity.status(HttpStatus.ACCEPTED)
+                    .body(java.util.Map.of("workflowId", id, "status", "PENDING"));
+        } catch (java.util.concurrent.RejectedExecutionException busy) {
+            return ResponseEntity.status(HttpStatus.SERVICE_UNAVAILABLE)
+                    .body(java.util.Map.of("error", "WORKFLOW_CAPACITY",
+                            "message", "Workflow capacity reached; retry later"));
+        }
     }
 
     @GetMapping("/workflows/{workflowId}")
