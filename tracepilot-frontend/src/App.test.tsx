@@ -107,4 +107,14 @@ describe('Investigation workspace', () => {
     expect(api.workflowSteps).toHaveBeenCalledTimes(3)
   })
 
+  it('recovers a saved workflow after reload without another POST', async () => {
+    const id = '02b5f9ee-8c34-4ae7-bb49-4a501b49fa16'
+    window.localStorage.setItem('tracepilot.activeWorkflow.v1', JSON.stringify({ id, incidentId: 'INC-DB-001' }))
+    render(<App />)
+    expect(await screen.findByText('Cause unproven')).toBeInTheDocument()
+    expect(api.workflow).toHaveBeenCalledWith(id)
+    expect(api.startAsyncWorkflow).not.toHaveBeenCalled()
+    expect(window.localStorage.getItem('tracepilot.activeWorkflow.v1')).toBeNull()
+  })
+
 })
