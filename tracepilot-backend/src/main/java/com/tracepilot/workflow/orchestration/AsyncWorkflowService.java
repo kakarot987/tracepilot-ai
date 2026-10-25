@@ -1,6 +1,7 @@
 package com.tracepilot.workflow.orchestration;
 
 import com.tracepilot.workflow.persistence.WorkflowLease;
+import com.tracepilot.workflow.persistence.WorkflowPersistenceService;
 import org.springframework.context.annotation.Profile;
 import org.springframework.stereotype.Service;
 import org.slf4j.Logger;
@@ -19,12 +20,25 @@ public class AsyncWorkflowService {
     private static final Logger log = LoggerFactory.getLogger(AsyncWorkflowService.class);
     private final WorkflowExecutionStarter starter;
     private final WorkflowOrchestrator orchestrator;
-    private final ExecutorService executor = Executors.newFixedThreadPool(2);
-    private final Semaphore capacity = new Semaphore(2);
+    private final WorkflowPersistenceService workflows;
+    private final ExecutorService executor;
+    private final Semaphore capacity;
 
-    public AsyncWorkflowService(WorkflowExecutionStarter starter, WorkflowOrchestrator orchestrator) {
+    public AsyncWorkflowService(WorkflowExecutionStarter starter,
+                                WorkflowOrchestrator orchestrator,
+                                WorkflowPersistenceService workflows) {
+        this(starter, orchestrator, workflows, Executors.newFixedThreadPool(2), 2);
+    }
+
+    AsyncWorkflowService(WorkflowExecutionStarter starter,
+                         WorkflowOrchestrator orchestrator,
+                         WorkflowPersistenceService workflows,
+                         ExecutorService executor, int maxConcurrent) {
         this.starter = starter;
         this.orchestrator = orchestrator;
+        this.workflows = workflows;
+        this.executor = executor;
+        this.capacity = new Semaphore(maxConcurrent);
     }
 
     public UUID submit(String incidentId) {
@@ -52,9 +66,21 @@ public class AsyncWorkflowService {
             });
         } catch (RuntimeException exception) {
             capacity.release();
-            // The lease has already been persisted. Do not silently retry this POST.
+            try {
+                if (!workflows.failPendingDispatch(lease)) {
+                    throw new IllegalStateException("Could not finalize rejected workflow");
+                }
+            } catch (RuntimeException cleanup) {
+                exception.addSuppressed(cleanup);
+                log.error("Failed to finalize rejected workflow; workflowId={}",
+                        lease.workflowId(), cleanup);
+                // Never report this as an ordinary rejected submission.
+                throw new IllegalStateException(
+                        "Workflow dispatch and cleanup failed; workflowId=" + lease.workflowId(),
+                        exception);
+            }
             log.error("Async workflow dispatch failed; workflowId={}", lease.workflowId(), exception);
-            throw exception;
+            throw new RejectedExecutionException("Workflow dispatch failed", exception);
         }
         return lease.workflowId();
     }
