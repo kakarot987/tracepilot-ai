@@ -117,16 +117,18 @@ Note: TracePilot validates that an investigation's cited evidence identifiers we
 
 ## Milestone 5 — Full-stack dashboard (Week 5)
 
-- [ ] Bootstrap a React + TypeScript frontend.
-- [ ] Build pages for incident list, incident detail, investigation progress, and investigation report.
-- [ ] Let users start an investigation and view its current status.
-- [ ] Show a chronological agent trace with tool calls, returned evidence IDs, timings, and errors.
-- [ ] Display hypotheses, confidence qualifiers, cited evidence, and recommended next steps.
-- [ ] Add polling or server-sent events for status updates (start with whichever is simpler).
-- [ ] Support a human approval step for any proposed **write** action (even if execution remains disabled in MVP).
-- [ ] Handle failure, timeout, cancel, and insufficient-evidence states in the UI.
+- [x] Bootstrap a React 19 + TypeScript frontend with Vite and local/Docker run paths.
+- [x] Build incident list and detail, investigation progress, and report sections in a single workspace (not separate routed pages).
+- [x] Let users start an asynchronous investigation, monitor its persisted status, and reconnect after browser reload or transient polling failures.
+- [x] Show chronological persisted agent steps, output summaries, evidence references, durations, and error codes; a dedicated per-tool-call timeline remains release polish.
+- [x] Display root-cause hypotheses, confidence qualifiers, supporting/contradicting evidence IDs, Reviewer decisions, and unresolved questions (source-passage navigation remains future polish).
+- [x] Poll workflow and step status every 2.5 seconds rather than adding SSE.
+- [x] Provide an explicitly local-only human approval/rejection sandbox for manually drafted proposed write actions; no decisions are persisted or executed.
+- [x] Present failure, timeout, cancellation, and insufficient-evidence outcomes without falsely asserting a root cause; preserve workflow ID and offer reconnection.
 
-**Exit criteria:** A user can investigate a synthetic incident end to end without calling APIs manually.
+**Status (2026-10-25): COMPLETE — merged into `main`.** Read-only source review confirmed the React dashboard, asynchronous workflow APIs, persisted step/output views, polling/reconnection, tests, frontend CI, and Docker/Nginx integration. The developer confirmed pre-merge verification was completed; individual frontend test and browser execution output was not independently inspected here. Prior merge blockers involving rejected async dispatch and duplicate submissions after polling errors were addressed in source review.
+
+**Exit criteria:** Met for the local MVP dashboard: a user can select a synthetic incident and investigate it through the UI without manually invoking APIs. Release polish remains for richer per-tool-call traces, source-passage navigation, lockfile-based reproducible builds, and full evaluation.
 
 ## Milestone 6 — Quality, security, and portfolio release (Week 6)
 
@@ -184,8 +186,9 @@ Note: TracePilot validates that an investigation's cited evidence identifiers we
 | 2026-10-16 | 0–1 | Re-audited Milestone 0: README, ignore file, Maven and scope confirmed. Developer confirms RAM/VRAM verification; no values published | Add license and optional GitHub milestone issues |
 | 2026-10-19 | 2 | `feature/milestone-2` merged into `main`; source review complete and Maven/PostgreSQL/live Ollama checks confirmed by developer | Begin Milestone 3 RAG and pgvector; license and issue housekeeping remain |
 | 2026-10-19 | 3 | `feature/milestone-3` merged into `main`; runbook RAG, pgvector, embedding versioning, agent citations, and retrieval evaluation recorded | Begin Milestone 4 controlled multi-agent orchestration |
-| 2026-10-24 | 4 | Live Triage → Investigator → Root Cause → Reviewer with one follow-up; seven persisted completed steps, operational log references and safe insufficient-evidence termination | Validate follow-up retrieval, latest full tests and one justified Reviewer ACCEPT |
+| 2026-10-24 | 4 | Four-role workflow live-demonstrated with seven persisted steps; subsequent follow-up acquired deployment and service evidence, and developer-provided Maven/PostgreSQL verification passed (250 tests, 0 failures/errors, 8 skipped) | Justified live Reviewer ACCEPT and expanded evaluation deferred to Milestone 6 |
+| 2026-10-25 | 5 | `feature/milestone-5` merged into `main`; React dashboard, async submission, polling/reconnection, evidence views, local approval sandbox, Docker integration, and test infrastructure reviewed | Begin Milestone 6 security, evaluation, reproducibility and portfolio release |
 
 ---
 
-**Current next action:** Complete the remaining Milestone 4 acceptance verification: targeted follow-up evidence retrieval, deterministic callback-path regression tests, a verified Reviewer-accepted example, latest full tests and updated performance comparison. See [Milestone 4 results](evaluations/milestone-4-results.md). Milestone 0 license/GitHub Issues and optional hardware benchmark notes remain housekeeping items.
+**Current next action:** Begin Milestone 6 on `feature/milestone-6`: evaluate at least 20 synthetic cases, verify an evidence-supported live Reviewer `ACCEPT` alongside safe abstentions, measure citation correctness and latency, harden redaction and request limits, test a fresh-clone Docker launch, and prepare the README, screenshots and demo. Also document the local approval sandbox, cooperative timeouts, skipped optional model tests, and frontend dependency lockfile/reproducibility. Milestone 0 license and GitHub Issues remain housekeeping items.
