@@ -43,7 +43,8 @@ def evaluate(predictions, gold):
             raise ValueError(f"Invalid prediction for {incident_id}")
         expected = case["rootCauseLabel"]
         abstained = status == "INSUFFICIENT_EVIDENCE" and predicted is None
-        correct = predicted == expected if expected is not None else abstained
+        diagnostic = status in ("COMPLETED", "INSUFFICIENT_EVIDENCE")
+        correct = (predicted == expected if expected is not None else abstained) if diagnostic else None
         allowed = set(case["evidenceIds"])
         valid = sum(c in allowed for c in citations)
         supported = sum(c in set(case["causalEvidenceIds"]) for c in citations)
@@ -57,21 +58,23 @@ def evaluate(predictions, gold):
         rows.append({
             "incidentId": incident_id, "workflowId": prediction["workflowId"],
             "expected": case["expectedOutcome"], "status": status,
-            "correct": correct, "abstained": abstained,
+            "correct": correct, "abstained": abstained, "diagnostic": diagnostic,
             "expectedLabel": expected, "predictedLabel": predicted,
             "citationCount": len(citations), "validCitationCount": valid,
             "causalCitationCount": supported, "latencyMs": latency,
             "toolCalls": tools, "successfulToolCalls": successes,
         })
 
-    supported_cases = [r for r in rows if r["expected"] == "SUPPORTED_CAUSE"]
-    abstention_cases = [r for r in rows if r["expected"] == "INSUFFICIENT_EVIDENCE"]
+    supported_cases = [r for r in rows if r["expected"] == "SUPPORTED_CAUSE" and r["diagnostic"]]
+    abstention_cases = [r for r in rows if r["expected"] == "INSUFFICIENT_EVIDENCE" and r["diagnostic"]]
     cited = sum(r["citationCount"] for r in rows)
     tool_rows = [r for r in rows if r["toolCalls"] is not None]
     tool_total = sum(r["toolCalls"] for r in tool_rows)
     return {
         "summary": {
             "evaluated": len(rows), "goldTotal": len(gold),
+            "diagnosticRuns": sum(r["diagnostic"] for r in rows),
+            "technicalFailures": sum(not r["diagnostic"] for r in rows),
             "coverage": len(rows) / len(gold) if gold else None,
             "top1AccuracyOnSupportedCases": (
                 sum(r["correct"] for r in supported_cases) / len(supported_cases)
@@ -84,7 +87,7 @@ def evaluate(predictions, gold):
             "toolCallSuccessRate": (
                 sum(r["successfulToolCalls"] for r in tool_rows) / tool_total if tool_total else None),
             "medianLatencyMs": statistics.median(r["latencyMs"] for r in rows) if rows else None,
-            "note": "Citation ID overlap is NOT semantic support; null metrics mean insufficient observations.",
+            "note": "Technical failures are excluded from diagnostic accuracy and abstention denominators; citation ID overlap is NOT semantic support.",
         },
         "cases": rows,
     }
