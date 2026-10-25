@@ -1,0 +1,32 @@
+{
+  "summary": {
+    "evaluated": 1,
+    "goldTotal": 20,
+    "coverage": 0.05,
+    "top1AccuracyOnSupportedCases": null,
+    "safeAbstentionRate": 0.0,
+    "citationIdValidity": null,
+    "causalEvidenceIdOverlap": null,
+    "toolCallSuccessRate": null,
+    "medianLatencyMs": 42697,
+    "note": "Citation ID overlap is NOT semantic support; null metrics mean insufficient observations."
+  },
+  "cases": [
+    {
+      "incidentId": "INC-PAY-001",
+      "workflowId": "fd210d47-8217-434d-9092-059e17156e5e",
+      "expected": "INSUFFICIENT_EVIDENCE",
+      "status": "FAILED",
+      "correct": false,
+      "abstained": false,
+      "expectedLabel": null,
+      "predictedLabel": null,
+      "citationCount": 0,
+      "validCitationCount": 0,
+      "causalCitationCount": 0,
+      "latencyMs": 42697,
+      "toolCalls": null,
+      "successfulToolCalls": null
+    }
+  ]
+}

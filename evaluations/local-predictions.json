@@ -1,0 +1,21 @@
+{
+  "predictions": [
+    {
+      "incidentId": "INC-PAY-001",
+      "workflowId": "fd210d47-8217-434d-9092-059e17156e5e",
+      "status": "FAILED",
+      "latencyMs": 42697,
+      "predictedRootCause": null,
+      "citedEvidenceIds": [],
+      "retrievedEvidenceIds": [
+        "DEP-PAY-001",
+        "LOG-PAY-001",
+        "LOG-PAY-002",
+        "LOG-PAY-003",
+        "SVC-payment-service"
+      ],
+      "annotationRequired": true,
+      "annotationNote": "Inspect final Reviewer outcome and hypotheses; enter model-predicted cause and only actually cited IDs. Do not copy gold labels."
+    }
+  ]
+}
