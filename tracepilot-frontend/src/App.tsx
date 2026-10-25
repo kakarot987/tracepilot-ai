@@ -164,8 +164,10 @@ export function App() {
       for (let attempt = 0; attempt < 120; attempt++) {
         const state = await api.workflow(submission.workflowId)
         setProgress(state.status + (state.currentRole ? ' · ' + state.currentRole : '') + ' · Step ' + state.stepsUsed)
-        const trace = await api.workflowSteps(submission.workflowId)
-        setSteps(trace)
+        try {
+          const trace = await api.workflowSteps(submission.workflowId)
+          setSteps(trace)
+        } catch { /* Keep polling workflow state if a trace read temporarily fails. */ }
         if (['COMPLETED', 'INSUFFICIENT_EVIDENCE', 'FAILED', 'TIMED_OUT', 'CANCELLED'].includes(state.status)) {
           finished = true
           // Rehydrate the most recent reports from persisted output, even after refresh.
