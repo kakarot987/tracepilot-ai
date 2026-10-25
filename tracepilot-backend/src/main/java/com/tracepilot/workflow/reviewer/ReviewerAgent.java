@@ -133,34 +133,57 @@ public class ReviewerAgent {
         }
 
         var budget = new InvestigationBudget(
-                1, DEADLINE);
+                2, DEADLINE);
 
-        String response = runner.run(
-                INSTRUCTIONS,
-                """
+        String prompt = """
                 Hypotheses:
                 %s
 
                 Evidence excerpts:
                 %s
 
-                Evaluate every hypothesis.
+                Evaluate all %d hypotheses, exactly one claimReviews item
+                per hypothesisIndex (0 through %d). Missing a hypothesis
+                makes the entire response invalid. Unsupported claims
+                must be marked supported=false, never omitted.
                 """.formatted(
                         hypothesisText,
-                        sourceText),
-                List.of(),
-                budget,
-                true,
-                true
-        );
+                        sourceText,
+                        rootCause.hypotheses().size(),
+                        rootCause.hypotheses().size() - 1);
+
+        String response = runner.run(
+                INSTRUCTIONS, prompt, List.of(), budget, true, true);
 
         if (budget.isExpired()) {
             throw new IllegalStateException(
                     "Reviewer deadline exceeded");
         }
 
-        return parseAndValidate(
-                response, rootCause, byId);
+        try {
+            return parseAndValidate(response, rootCause, byId);
+        } catch (IllegalArgumentException error) {
+            if (!"Every hypothesis must be reviewed".equals(error.getMessage())) {
+                throw error;
+            }
+            // One bounded repair attempt; keep all evidence and approval
+            // validation unchanged. A second invalid answer still fails.
+            String corrected = runner.run(
+                    INSTRUCTIONS,
+                    prompt + """
+
+                    The previous response omitted one or more hypotheses.
+                    Return a complete fresh JSON response with exactly
+                    one review for EVERY hypothesis index; do not invent
+                    citations or mark unsupported claims as supported.
+                    """,
+                    List.of(), budget, true, true);
+            if (budget.isExpired()) {
+                throw new IllegalStateException(
+                        "Reviewer deadline exceeded");
+            }
+            return parseAndValidate(corrected, rootCause, byId);
+        }
     }
 
     private ReviewerResult parseAndValidate(
