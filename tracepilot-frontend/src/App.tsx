@@ -1,5 +1,6 @@
 import { useEffect, useRef, useState } from 'react'
 import { WorkflowMonitor } from './WorkflowMonitor'
+import { ApprovalPanel } from './ApprovalPanel'
 import {
   api, type EvidenceReference, type Incident, type WorkflowExecution,
   type WorkflowStep, type WorkflowStepOutput,
@@ -296,6 +297,7 @@ export function App() {
         </section>
       </div>
       <WorkflowMonitor />
+      <ApprovalPanel />
     </main>
   </div>
 }
