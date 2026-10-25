@@ -1,0 +1,256 @@
+{
+  "schemaVersion": 1,
+  "source": "Existing Flyway V2/V4 fixtures; derived evidence-subset evaluation views, not additional seeded incidents",
+  "cases": [
+    {
+      "caseId": "EVAL-PAY-01",
+      "incidentId": "INC-PAY-001",
+      "serviceName": "payment-service",
+      "evidenceIds": [
+        "LOG-PAY-001",
+        "LOG-PAY-002",
+        "LOG-PAY-003"
+      ],
+      "expectedOutcome": "OBSERVED_FAILURE",
+      "expectedObservedFailure": "DB_CONNECTION_ACQUISITION_TIMEOUT",
+      "underlyingRootCause": "UNKNOWN_UNDERLYING_CAUSE",
+      "description": "Full seeded incident evidence; identify the directly logged failure, not its upstream cause"
+    },
+    {
+      "caseId": "EVAL-PAY-02",
+      "incidentId": "INC-PAY-001",
+      "serviceName": "payment-service",
+      "evidenceIds": [
+        "LOG-PAY-001"
+      ],
+      "expectedOutcome": "INSUFFICIENT_EVIDENCE",
+      "expectedObservedFailure": null,
+      "underlyingRootCause": "UNKNOWN_UNDERLYING_CAUSE",
+      "description": "Only informational startup/request log; abstain"
+    },
+    {
+      "caseId": "EVAL-PAY-03",
+      "incidentId": "INC-PAY-001",
+      "serviceName": "payment-service",
+      "evidenceIds": [
+        "LOG-PAY-002"
+      ],
+      "expectedOutcome": "INSUFFICIENT_EVIDENCE",
+      "expectedObservedFailure": null,
+      "underlyingRootCause": "UNKNOWN_UNDERLYING_CAUSE",
+      "description": "Warning without terminal failure; abstain on a proven root cause"
+    },
+    {
+      "caseId": "EVAL-PAY-04",
+      "incidentId": "INC-PAY-001",
+      "serviceName": "payment-service",
+      "evidenceIds": [
+        "LOG-PAY-003"
+      ],
+      "expectedOutcome": "OBSERVED_FAILURE",
+      "expectedObservedFailure": "DB_CONNECTION_ACQUISITION_TIMEOUT",
+      "underlyingRootCause": "UNKNOWN_UNDERLYING_CAUSE",
+      "description": "Error evidence establishes immediate failure mode, not underlying causal mechanism"
+    },
+    {
+      "caseId": "EVAL-DB-01",
+      "incidentId": "INC-DB-001",
+      "serviceName": "order-service",
+      "evidenceIds": [
+        "LOG-DB-001",
+        "LOG-DB-002",
+        "LOG-DB-003"
+      ],
+      "expectedOutcome": "OBSERVED_FAILURE",
+      "expectedObservedFailure": "JDBC_CONNECTION_ACQUISITION_FAILURE",
+      "underlyingRootCause": "UNKNOWN_UNDERLYING_CAUSE",
+      "description": "Full seeded incident evidence; identify the directly logged failure, not its upstream cause"
+    },
+    {
+      "caseId": "EVAL-DB-02",
+      "incidentId": "INC-DB-001",
+      "serviceName": "order-service",
+      "evidenceIds": [
+        "LOG-DB-001"
+      ],
+      "expectedOutcome": "INSUFFICIENT_EVIDENCE",
+      "expectedObservedFailure": null,
+      "underlyingRootCause": "UNKNOWN_UNDERLYING_CAUSE",
+      "description": "Only informational startup/request log; abstain"
+    },
+    {
+      "caseId": "EVAL-DB-03",
+      "incidentId": "INC-DB-001",
+      "serviceName": "order-service",
+      "evidenceIds": [
+        "LOG-DB-002"
+      ],
+      "expectedOutcome": "INSUFFICIENT_EVIDENCE",
+      "expectedObservedFailure": null,
+      "underlyingRootCause": "UNKNOWN_UNDERLYING_CAUSE",
+      "description": "Warning without terminal failure; abstain on a proven root cause"
+    },
+    {
+      "caseId": "EVAL-DB-04",
+      "incidentId": "INC-DB-001",
+      "serviceName": "order-service",
+      "evidenceIds": [
+        "LOG-DB-003"
+      ],
+      "expectedOutcome": "OBSERVED_FAILURE",
+      "expectedObservedFailure": "JDBC_CONNECTION_ACQUISITION_FAILURE",
+      "underlyingRootCause": "UNKNOWN_UNDERLYING_CAUSE",
+      "description": "Error evidence establishes immediate failure mode, not underlying causal mechanism"
+    },
+    {
+      "caseId": "EVAL-UP-01",
+      "incidentId": "INC-UP-001",
+      "serviceName": "checkout-service",
+      "evidenceIds": [
+        "LOG-UP-001",
+        "LOG-UP-002",
+        "LOG-UP-003"
+      ],
+      "expectedOutcome": "OBSERVED_FAILURE",
+      "expectedObservedFailure": "UPSTREAM_PRICING_HTTP_503",
+      "underlyingRootCause": "UNKNOWN_UNDERLYING_CAUSE",
+      "description": "Full seeded incident evidence; identify the directly logged failure, not its upstream cause"
+    },
+    {
+      "caseId": "EVAL-UP-02",
+      "incidentId": "INC-UP-001",
+      "serviceName": "checkout-service",
+      "evidenceIds": [
+        "LOG-UP-001"
+      ],
+      "expectedOutcome": "INSUFFICIENT_EVIDENCE",
+      "expectedObservedFailure": null,
+      "underlyingRootCause": "UNKNOWN_UNDERLYING_CAUSE",
+      "description": "Only informational startup/request log; abstain"
+    },
+    {
+      "caseId": "EVAL-UP-03",
+      "incidentId": "INC-UP-001",
+      "serviceName": "checkout-service",
+      "evidenceIds": [
+        "LOG-UP-002"
+      ],
+      "expectedOutcome": "INSUFFICIENT_EVIDENCE",
+      "expectedObservedFailure": null,
+      "underlyingRootCause": "UNKNOWN_UNDERLYING_CAUSE",
+      "description": "Warning without terminal failure; abstain on a proven root cause"
+    },
+    {
+      "caseId": "EVAL-UP-04",
+      "incidentId": "INC-UP-001",
+      "serviceName": "checkout-service",
+      "evidenceIds": [
+        "LOG-UP-003"
+      ],
+      "expectedOutcome": "OBSERVED_FAILURE",
+      "expectedObservedFailure": "UPSTREAM_PRICING_HTTP_503",
+      "underlyingRootCause": "UNKNOWN_UNDERLYING_CAUSE",
+      "description": "Error evidence establishes immediate failure mode, not underlying causal mechanism"
+    },
+    {
+      "caseId": "EVAL-RATE-01",
+      "incidentId": "INC-RATE-001",
+      "serviceName": "api-gateway",
+      "evidenceIds": [
+        "LOG-RATE-001",
+        "LOG-RATE-002",
+        "LOG-RATE-003"
+      ],
+      "expectedOutcome": "OBSERVED_FAILURE",
+      "expectedObservedFailure": "CLIENT_RATE_LIMIT_REJECTION",
+      "underlyingRootCause": "UNKNOWN_UNDERLYING_CAUSE",
+      "description": "Full seeded incident evidence; identify the directly logged failure, not its upstream cause"
+    },
+    {
+      "caseId": "EVAL-RATE-02",
+      "incidentId": "INC-RATE-001",
+      "serviceName": "api-gateway",
+      "evidenceIds": [
+        "LOG-RATE-001"
+      ],
+      "expectedOutcome": "INSUFFICIENT_EVIDENCE",
+      "expectedObservedFailure": null,
+      "underlyingRootCause": "UNKNOWN_UNDERLYING_CAUSE",
+      "description": "Only informational startup/request log; abstain"
+    },
+    {
+      "caseId": "EVAL-RATE-03",
+      "incidentId": "INC-RATE-001",
+      "serviceName": "api-gateway",
+      "evidenceIds": [
+        "LOG-RATE-002"
+      ],
+      "expectedOutcome": "INSUFFICIENT_EVIDENCE",
+      "expectedObservedFailure": null,
+      "underlyingRootCause": "UNKNOWN_UNDERLYING_CAUSE",
+      "description": "Warning without terminal failure; abstain on a proven root cause"
+    },
+    {
+      "caseId": "EVAL-RATE-04",
+      "incidentId": "INC-RATE-001",
+      "serviceName": "api-gateway",
+      "evidenceIds": [
+        "LOG-RATE-003"
+      ],
+      "expectedOutcome": "OBSERVED_FAILURE",
+      "expectedObservedFailure": "CLIENT_RATE_LIMIT_REJECTION",
+      "underlyingRootCause": "UNKNOWN_UNDERLYING_CAUSE",
+      "description": "Error evidence establishes immediate failure mode, not underlying causal mechanism"
+    },
+    {
+      "caseId": "EVAL-MEM-01",
+      "incidentId": "INC-MEM-001",
+      "serviceName": "inventory-service",
+      "evidenceIds": [
+        "LOG-MEM-001",
+        "LOG-MEM-002",
+        "LOG-MEM-003"
+      ],
+      "expectedOutcome": "OBSERVED_FAILURE",
+      "expectedObservedFailure": "JAVA_HEAP_ALLOCATION_FAILURE",
+      "underlyingRootCause": "UNKNOWN_UNDERLYING_CAUSE",
+      "description": "Full seeded incident evidence; identify the directly logged failure, not its upstream cause"
+    },
+    {
+      "caseId": "EVAL-MEM-02",
+      "incidentId": "INC-MEM-001",
+      "serviceName": "inventory-service",
+      "evidenceIds": [
+        "LOG-MEM-001"
+      ],
+      "expectedOutcome": "INSUFFICIENT_EVIDENCE",
+      "expectedObservedFailure": null,
+      "underlyingRootCause": "UNKNOWN_UNDERLYING_CAUSE",
+      "description": "Only informational startup/request log; abstain"
+    },
+    {
+      "caseId": "EVAL-MEM-03",
+      "incidentId": "INC-MEM-001",
+      "serviceName": "inventory-service",
+      "evidenceIds": [
+        "LOG-MEM-002"
+      ],
+      "expectedOutcome": "INSUFFICIENT_EVIDENCE",
+      "expectedObservedFailure": null,
+      "underlyingRootCause": "UNKNOWN_UNDERLYING_CAUSE",
+      "description": "Warning without terminal failure; abstain on a proven root cause"
+    },
+    {
+      "caseId": "EVAL-MEM-04",
+      "incidentId": "INC-MEM-001",
+      "serviceName": "inventory-service",
+      "evidenceIds": [
+        "LOG-MEM-003"
+      ],
+      "expectedOutcome": "OBSERVED_FAILURE",
+      "expectedObservedFailure": "JAVA_HEAP_ALLOCATION_FAILURE",
+      "underlyingRootCause": "UNKNOWN_UNDERLYING_CAUSE",
+      "description": "Error evidence establishes immediate failure mode, not underlying causal mechanism"
+    }
+  ]
+}
