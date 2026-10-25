@@ -466,4 +466,31 @@ class ReviewerAgentTest {
         assertEquals("Review cites unrelated evidence", exception.getMessage());
     }
 
+    @Test
+    void rejectsFollowUpWithoutUnresolvedQuestion() {
+        mockResponse("""
+                {"decision":"FOLLOW_UP",
+                 "claimReviews":[{"hypothesisIndex":0,"supported":false,
+                   "evidenceIds":["LOG-DB-001"],"explanation":"Not proven"}],
+                 "unresolvedQuestions":[],"rationale":"Need follow-up"}
+                """);
+        var error = assertThrows(IllegalArgumentException.class,
+                () -> reviewer.review(supportedRootCause(), operationalEvidence()));
+        assertEquals("FOLLOW_UP requires unresolved questions", error.getMessage());
+    }
+
+    @Test
+    void rejectsAcceptWithUnresolvedQuestion() {
+        mockResponse("""
+                {"decision":"ACCEPT",
+                 "claimReviews":[{"hypothesisIndex":0,"supported":true,
+                   "evidenceIds":["LOG-DB-001"],"explanation":"Saturation verified"}],
+                 "unresolvedQuestions":["What caused this?"],
+                 "rationale":"Accepted"}
+                """);
+        var error = assertThrows(IllegalArgumentException.class,
+                () -> reviewer.review(supportedRootCause(), operationalEvidence()));
+        assertEquals("ACCEPT cannot contain unresolved questions", error.getMessage());
+    }
+
 }
