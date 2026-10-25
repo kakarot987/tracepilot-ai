@@ -71,14 +71,48 @@ export interface WorkflowStep {
   outputSummary: string | null
 }
 
+export class ApiError extends Error {
+  constructor(
+    public readonly status: number,
+    public readonly code: string | null,
+    message: string,
+  ) {
+    super(message)
+    this.name = 'ApiError'
+  }
+}
+
+function statusMessage(status: number): string {
+  if (status === 400) return 'Request could not be processed'
+  if (status === 404) return 'Requested resource was not found'
+  if (status === 409) return 'Another investigation may already be active'
+  if (status === 429) return 'Too many requests; try again later'
+  if (status === 502) return 'Agent returned an invalid response'
+  if (status === 504) return 'Investigation timed out'
+  if (status >= 500) return 'Backend service is unavailable'
+  return 'API request failed'
+}
+
 async function request<T>(path: string, init?: RequestInit): Promise<T> {
-  const response = await fetch('/api/v1' + path, {
-    ...init,
-    headers: { Accept: 'application/json', ...init?.headers },
-  })
+  let response: Response
+  try {
+    response = await fetch('/api/v1' + path, {
+      ...init,
+      headers: { Accept: 'application/json', ...init?.headers },
+    })
+  } catch {
+    throw new ApiError(0, 'NETWORK_ERROR', 'Cannot reach the backend. Check that it is running.')
+  }
 
   if (!response.ok) {
-    throw new Error('API request failed (' + response.status + ')')
+    let code: string | null = null
+    try {
+      const body: unknown = await response.json()
+      if (body && typeof body === 'object' && 'error' in body &&
+          typeof body.error === 'string') code = body.error
+    } catch { /* The backend may return an empty or non-JSON error body. */ }
+    throw new ApiError(response.status, code,
+      statusMessage(response.status) + ' (HTTP ' + response.status + ')')
   }
   return response.json() as Promise<T>
 }
