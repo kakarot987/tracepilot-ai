@@ -31,6 +31,7 @@ const steps: WorkflowStep[] = [
 ]
 
 beforeEach(() => {
+  vi.clearAllMocks()
   vi.mocked(api.incidents).mockResolvedValue(incidents)
   vi.mocked(api.startWorkflow).mockResolvedValue(result)
   vi.mocked(api.workflowSteps).mockResolvedValue(steps)
