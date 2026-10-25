@@ -79,12 +79,30 @@ export function App() {
   const [loading, setLoading] = useState(true)
   const [running, setRunning] = useState(false)
   const [error, setError] = useState<string | null>(null)
+  const [incidentError, setIncidentError] = useState(false)
+  const [traceError, setTraceError] = useState<string | null>(null)
+
+  async function reloadIncidents() {
+    setLoading(true)
+    setIncidentError(false)
+    setError(null)
+    try {
+      const items = await api.incidents()
+      setIncidents(items)
+      setSelected(current => items.find(item => item.id === current?.id) ?? items[0] ?? null)
+    } catch (err: unknown) {
+      setIncidentError(true)
+      setError(err instanceof Error ? err.message : 'Unable to load incidents')
+    } finally {
+      setLoading(false)
+    }
+  }
 
   useEffect(() => {
     let active = true
     api.incidents()
       .then(items => { if (active) { setIncidents(items); setSelected(items[0] ?? null) } })
-      .catch((err: unknown) => { if (active) setError(err instanceof Error ? err.message : 'Unable to load incidents') })
+      .catch((err: unknown) => { if (active) { setIncidentError(true); setError(err instanceof Error ? err.message : 'Unable to load incidents') } })
       .finally(() => { if (active) setLoading(false) })
     return () => { active = false }
   }, [])
@@ -97,25 +115,17 @@ export function App() {
     setDetails({})
     setExpanded(null)
     setError(null)
+    setTraceError(null)
   }
 
-  async function investigate() {
-    if (!selected || running) return
-    setRunning(true)
-    setError(null)
-    setWorkflow(null)
-    setSteps([])
-    setDetails({})
-    setExpanded(null)
+  async function loadTrace(id: string) {
+    setTraceError(null)
     try {
-      const result = await api.startWorkflow(selected.id)
-      setWorkflow(result)
-      const trace = await api.workflowSteps(result.workflowId)
+      const trace = await api.workflowSteps(id)
       setSteps(trace)
-      // Load exact persisted outputs, not merely the latest output per role.
       const entries = await Promise.all(trace.map(async step => {
         try {
-          const output = await api.stepOutputById(result.workflowId, step.id)
+          const output = await api.stepOutputById(id, step.id)
           let evidence: EvidenceReference[] = []
           let evidenceError: string | undefined
           if (output.investigationRunId) {
@@ -128,6 +138,24 @@ export function App() {
         }
       }))
       setDetails(Object.fromEntries(entries))
+    } catch (err: unknown) {
+      setTraceError(err instanceof Error ? err.message : 'Cannot load the agent trace')
+    }
+  }
+
+  async function investigate() {
+    if (!selected || running) return
+    setRunning(true)
+    setError(null)
+    setWorkflow(null)
+    setSteps([])
+    setDetails({})
+    setExpanded(null)
+    setTraceError(null)
+    try {
+      const result = await api.startWorkflow(selected.id)
+      setWorkflow(result)
+      await loadTrace(result.workflowId)
     } catch (err: unknown) {
       setError(err instanceof Error ? err.message : 'Investigation failed')
     } finally {
@@ -149,7 +177,10 @@ export function App() {
           <p className="subtitle">Evidence-grounded workflows with auditable agent traces.</p></div>
         <span className="environment">● Local environment</span>
       </header>
-      {error && <div role="alert" className="error">{error}</div>}
+      {error && <div role="alert" className="error">
+        <span>{error}</span>
+        {incidentError && <button type="button" className="retry" disabled={loading} onClick={() => void reloadIncidents()}>Retry loading incidents</button>}
+      </div>}
       <div className="workspace">
         <section className="panel incident-list">
           <div className="panel-heading"><h2>Incidents</h2><span className="count">{incidents.length}</span></div>
@@ -179,6 +210,10 @@ export function App() {
               <div className="result-heading"><h3>Workflow result</h3><span className={'pill status-' + statusClass(workflow.status)}>{label(workflow.status)}</span></div>
               <p className="muted">Workflow ID: <code>{workflow.workflowId}</code></p>
               <p className="muted">Reviewer follow-ups: {workflow.followUpsUsed}</p>
+              {traceError && <div role="alert" className="error">
+                <span>Agent trace unavailable: {traceError}. The workflow result is preserved.</span>
+                <button type="button" className="retry" onClick={() => void loadTrace(workflow.workflowId)}>Retry loading trace</button>
+              </div>}
               <Report workflow={workflow} />
               <h3>Agent execution trace</h3>
               <ol className="trace">{steps.map(step =>
