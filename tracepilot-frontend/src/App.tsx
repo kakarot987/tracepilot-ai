@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react'
+import { useEffect, useRef, useState } from 'react'
 import { WorkflowMonitor } from './WorkflowMonitor'
 import {
   api, type EvidenceReference, type Incident, type WorkflowExecution,
@@ -84,6 +84,8 @@ export function App() {
   const [error, setError] = useState<string | null>(null)
   const [incidentError, setIncidentError] = useState(false)
   const [traceError, setTraceError] = useState<string | null>(null)
+  const session = useRef(0)
+  const storageKey = 'tracepilot.activeWorkflow.v1'
 
   async function reloadIncidents() {
     setLoading(true)
@@ -100,6 +102,23 @@ export function App() {
       setLoading(false)
     }
   }
+
+  useEffect(() => {
+    const raw = window.localStorage.getItem(storageKey)
+    if (!raw) return
+    try {
+      const saved: unknown = JSON.parse(raw)
+      if (saved && typeof saved === 'object' && 'id' in saved && 'incidentId' in saved &&
+          typeof saved.id === 'string' && typeof saved.incidentId === 'string' &&
+          /^[0-9a-f-]{36}$/i.test(saved.id)) {
+        setActiveWorkflowId(saved.id)
+        setProgress('Reconnecting to persisted workflow…')
+        void observeWorkflow(saved.id, ++session.current)
+      }
+    } catch { window.localStorage.removeItem(storageKey) }
+    return () => { ++session.current }
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [])
 
   useEffect(() => {
     let active = true
@@ -146,6 +165,40 @@ export function App() {
     }
   }
 
+  async function observeWorkflow(id: string, generation: number) {
+    setRunning(true)
+    try {
+      for (let attempt = 0; attempt < 120 && session.current === generation; attempt++) {
+        const state = await api.workflow(id)
+        if (session.current !== generation) return
+        setProgress(state.status + (state.currentRole ? ' · ' + state.currentRole : '') + ' · Step ' + state.stepsUsed)
+        try {
+          const trace = await api.workflowSteps(id)
+          if (session.current === generation) setSteps(trace)
+        } catch { /* Poll state independently of trace availability. */ }
+        if (['COMPLETED', 'INSUFFICIENT_EVIDENCE', 'FAILED', 'TIMED_OUT', 'CANCELLED'].includes(state.status)) {
+          let rootCause: WorkflowExecution['rootCause'] = null
+          let review: WorkflowExecution['review'] = null
+          try { rootCause = JSON.parse((await api.stepOutput(id, 'ROOT_CAUSE')).json) as WorkflowExecution['rootCause'] }
+          catch { /* May have terminated before analysis. */ }
+          try { review = JSON.parse((await api.stepOutput(id, 'REVIEWER')).json) as WorkflowExecution['review'] }
+          catch { /* May have terminated before review. */ }
+          if (session.current !== generation) return
+          setWorkflow({ workflowId: id, status: state.status, followUpsUsed: state.followUpsUsed, rootCause, review })
+          await loadTrace(id)
+          window.localStorage.removeItem(storageKey)
+          return
+        }
+        await new Promise(resolve => setTimeout(resolve, 2500))
+      }
+      if (session.current === generation) setError('Workflow may still be running. Use the monitor to inspect this ID.')
+    } catch (err: unknown) {
+      if (session.current === generation) setError(err instanceof Error ? err.message : 'Unable to reconnect to the workflow')
+    } finally {
+      if (session.current === generation) setRunning(false)
+    }
+  }
+
   async function investigate() {
     if (!selected || running) return
     setRunning(true)
@@ -160,35 +213,8 @@ export function App() {
     try {
       const submission = await api.startAsyncWorkflow(selected.id)
       setActiveWorkflowId(submission.workflowId)
-      let finished = false
-      for (let attempt = 0; attempt < 120; attempt++) {
-        const state = await api.workflow(submission.workflowId)
-        setProgress(state.status + (state.currentRole ? ' · ' + state.currentRole : '') + ' · Step ' + state.stepsUsed)
-        try {
-          const trace = await api.workflowSteps(submission.workflowId)
-          setSteps(trace)
-        } catch { /* Keep polling workflow state if a trace read temporarily fails. */ }
-        if (['COMPLETED', 'INSUFFICIENT_EVIDENCE', 'FAILED', 'TIMED_OUT', 'CANCELLED'].includes(state.status)) {
-          finished = true
-          // Rehydrate the most recent reports from persisted output, even after refresh.
-          let rootCause: WorkflowExecution['rootCause'] = null
-          let review: WorkflowExecution['review'] = null
-          try {
-            const saved = await api.stepOutput(submission.workflowId, 'ROOT_CAUSE')
-            rootCause = JSON.parse(saved.json) as WorkflowExecution['rootCause']
-          } catch { /* Early termination may not produce analysis. */ }
-          try {
-            const saved = await api.stepOutput(submission.workflowId, 'REVIEWER')
-            review = JSON.parse(saved.json) as WorkflowExecution['review']
-          } catch { /* Early termination may not produce a review. */ }
-          setWorkflow({ workflowId: submission.workflowId, status: state.status,
-            followUpsUsed: state.followUpsUsed, rootCause, review })
-          await loadTrace(submission.workflowId)
-          break
-        }
-        await new Promise(resolve => setTimeout(resolve, 2500))
-      }
-      if (!finished) setError('Workflow is still active. Track it using the Workflow monitor and its ID.')
+      window.localStorage.setItem(storageKey, JSON.stringify({ id: submission.workflowId, incidentId: selected.id }))
+      await observeWorkflow(submission.workflowId, ++session.current)
     } catch (err: unknown) {
       setError(err instanceof Error ? err.message : 'Investigation failed')
     } finally {
