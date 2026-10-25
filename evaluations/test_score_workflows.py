@@ -28,6 +28,15 @@ class WorkflowScoringTests(unittest.TestCase):
         with self.assertRaises(ValueError):
             evaluate([row], GOLD)
 
+    def test_failed_run_is_operational_failure_not_failed_abstention(self):
+        row = {"incidentId": "INC-B", "workflowId": "failed-run", "status": "FAILED",
+               "latencyMs": 42697, "predictedRootCause": None, "citedEvidenceIds": []}
+        result = evaluate([row], GOLD)
+        self.assertEqual(1, result["summary"]["technicalFailures"])
+        self.assertEqual(0, result["summary"]["diagnosticRuns"])
+        self.assertIsNone(result["summary"]["safeAbstentionRate"])
+        self.assertIsNone(result["cases"][0]["correct"])
+
     def test_duplicate_runs_are_rejected(self):
         row = {"incidentId": "INC-A", "workflowId": "run-a", "status": "FAILED", "latencyMs": 10, "predictedRootCause": None, "citedEvidenceIds": []}
         with self.assertRaises(ValueError):
