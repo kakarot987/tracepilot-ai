@@ -78,4 +78,26 @@ describe('Investigation workspace', () => {
     expect(screen.getByRole('heading', { name: 'Database connection failures' })).toBeInTheDocument()
     expect(screen.queryByText('Workflow result')).not.toBeInTheDocument()
   })
+  it('retries incident loading after a transient error', async () => {
+    vi.mocked(api.incidents).mockRejectedValueOnce(new Error('Network unavailable'))
+    render(<App />)
+    expect(await screen.findByRole('alert')).toHaveTextContent('Network unavailable')
+    fireEvent.click(screen.getByRole('button', { name: 'Retry loading incidents' }))
+    expect(await screen.findByRole('heading', { name: 'Database connection failures' })).toBeInTheDocument()
+    expect(api.incidents).toHaveBeenCalledTimes(2)
+  })
+
+  it('preserves workflow report and retries a failed trace request without rerunning', async () => {
+    vi.mocked(api.workflowSteps).mockRejectedValueOnce(new Error('Backend not ready'))
+    render(<App />)
+    await screen.findByRole('heading', { name: 'Database connection failures' })
+    fireEvent.click(screen.getByRole('button', { name: /Start investigation/i }))
+    expect(await screen.findByText('Cause unproven')).toBeInTheDocument()
+    expect(await screen.findByText(/Agent trace unavailable/)).toBeInTheDocument()
+    fireEvent.click(screen.getByRole('button', { name: 'Retry loading trace' }))
+    expect(await screen.findByRole('button', { name: /#1 INVESTIGATOR/i })).toBeInTheDocument()
+    expect(api.startWorkflow).toHaveBeenCalledTimes(1)
+    expect(api.workflowSteps).toHaveBeenCalledTimes(2)
+  })
+
 })
